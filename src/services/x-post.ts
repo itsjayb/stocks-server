@@ -43,22 +43,56 @@ export async function postTweet(text: string): Promise<PostTweetResult> {
   };
   const authHeader = oauth.toHeader(oauth.authorize(requestData, { key: accessKey, secret: accessSecret }));
 
-  const res = await fetch(POST_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: authHeader.Authorization,
-    },
-    body: JSON.stringify({ text: trimmed }),
-  });
+  async function doPost(bodyText: string) {
+    const res = await fetch(POST_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader.Authorization,
+      },
+      body: JSON.stringify({ text: bodyText }),
+    });
 
-  const data = (await res.json().catch(() => ({}))) as { data?: { id?: string }; detail?: string; title?: string; error?: string };
-
-  if (!res.ok) {
-    const errMsg = data.detail || data.title || data.error || JSON.stringify(data);
-    return { success: false, error: `X API ${res.status}: ${errMsg}` };
+    const data = (await res.json().catch(() => ({}))) as { data?: { id?: string }; detail?: string; title?: string; error?: string };
+    return { res, data } as const;
   }
 
-  const id = data.data?.id;
-  return { success: true, id };
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastErr: { status: number; msg: string } | null = null;
+
+  while (attempt < maxAttempts) {
+    const resp = await doPost(trimmed);
+    if (resp.res.ok) return { success: true, id: resp.data.data?.id };
+
+    const errMsg = resp.data.detail || resp.data.title || resp.data.error || JSON.stringify(resp.data);
+
+    // If duplicate content, try a single gentle retry with a suffix
+    if (resp.res.status === 403 && /duplicate/i.test(errMsg)) {
+      const altText = `${trimmed} 🔁`;
+      const retry = await doPost(altText.slice(0, MAX_TWEET_LENGTH));
+      if (retry.res.ok) return { success: true, id: retry.data.data?.id };
+      const retryErr = retry.data.detail || retry.data.title || retry.data.error || JSON.stringify(retry.data);
+      return { success: false, error: `X API ${retry.res.status}: ${retryErr}` };
+    }
+
+    lastErr = { status: resp.res.status, msg: errMsg };
+
+    // For rate limits and server errors, retry with exponential backoff
+    if ((resp.res.status === 429 || resp.res.status >= 500) && attempt < maxAttempts - 1) {
+      const retryAfter = Number(resp.res.headers.get('retry-after')) || Math.pow(2, attempt) * 1000;
+      await sleep(retryAfter);
+      attempt += 1;
+      continue;
+    }
+
+    // Non-retryable error or out of attempts
+    break;
+  }
+
+  return { success: false, error: `X API ${lastErr?.status || 0}: ${lastErr?.msg || 'unknown error'}` };
 }

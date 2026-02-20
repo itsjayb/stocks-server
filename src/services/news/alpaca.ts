@@ -41,7 +41,16 @@ export async function fetchAlpacaNews(options: FetchAlpacaNewsOptions = {}): Pro
     });
 
     if (!res.ok) {
-      console.warn('Alpaca news API error:', res.status, await res.text());
+      const text = await res.text();
+      if (res.status === 401) {
+        console.warn(
+          'Alpaca news API error: 401 Unauthorized — check VITE_ALPACA_API_KEY and VITE_ALPACA_SECRET_KEY. Keys present:',
+          Boolean(API_KEY),
+          Boolean(API_SECRET)
+        );
+      } else {
+        console.warn('Alpaca news API error:', res.status, text);
+      }
       return [];
     }
 
