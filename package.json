@@ -8,6 +8,7 @@
     "schedule": "tsx src/scheduler.ts",
     "pattern-scan": "tsx src/jobs/pattern-scan-job.ts",
     "test": "node --import tsx --test tests/pattern-scan.test.ts",
+    "test:node": "node --test",
     "test:python": "cd python && python3 -m pytest tests/ -v",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
