@@ -3,18 +3,16 @@
  * Includes canonical site description for learnstockmarket.online so tweets advertise correctly.
  */
 
+import type { NewsItem } from '../types.js';
+
 const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online';
 const MAX_ITEMS = 10;
 
 const SITE_DESCRIPTION = `The site is ${PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '')}. It teaches chart patterns (support/resistance, trend patterns) at /patterns, and trading strategies (entries, exits, risk) at /strategies. Content is organized as lessons so users can follow a path and track progress.`;
 
-/**
- * @param {{ headline: string, summary: string, url: string, source: string, date: string }[][]} arrays
- * @returns {{ headline: string, summary: string, url: string, source: string, date: string }[]}
- */
-export function aggregateNews(arrays) {
-  const seen = new Set();
-  const combined = [];
+export function aggregateNews(arrays: (NewsItem[] | unknown)[]): NewsItem[] {
+  const seen = new Set<string>();
+  const combined: NewsItem[] = [];
 
   for (const arr of arrays) {
     if (!Array.isArray(arr)) continue;
@@ -23,7 +21,7 @@ export function aggregateNews(arrays) {
       const key = (item.url || item.headline).slice(0, 120);
       if (seen.has(key)) continue;
       seen.add(key);
-      combined.push(item);
+      combined.push(item as NewsItem);
     }
   }
 
@@ -36,11 +34,7 @@ export function aggregateNews(arrays) {
   return combined.slice(0, MAX_ITEMS);
 }
 
-/**
- * Build the news string for the prompt.
- * @param {{ headline: string, summary: string, url: string, source: string }[]} items
- */
-export function buildNewsString(items) {
+export function buildNewsString(items: NewsItem[]): string {
   return items
     .map(
       (item) =>
@@ -49,10 +43,7 @@ export function buildNewsString(items) {
     .join('\n');
 }
 
-/**
- * Build the full prompt for the LLM (system/context + task + news).
- */
-export function buildPrompt(newsString) {
+export function buildPrompt(newsString: string): string {
   const systemContext = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION}`;
   const task = `Using the market news below, write exactly one tweet (under 280 characters). You may mention the news and optionally add a short CTA to learn patterns or strategies at ${PROMO_URL} (or use the URL) when it fits. Output only the tweet text, no quotes or explanation.`;
   return `${systemContext}\n\n${task}\n\nMarket news:\n${newsString}`;

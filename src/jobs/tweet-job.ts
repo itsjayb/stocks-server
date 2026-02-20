@@ -1,7 +1,7 @@
 /**
  * Tweet job: fetch news from 3 APIs, aggregate, ask Ollama for tweet text, post to X.
  * Uses fallback templates if the LLM fails or returns empty.
- * Run once: node src/jobs/tweet-job.js
+ * Run once: tsx src/jobs/tweet-job.ts
  * Set DRY_RUN=true to skip posting to X.
  * Set POST_START_DATE=YYYY-MM-DD to only post on or after that date.
  */
@@ -17,7 +17,7 @@ import { getFallbackTweet } from '../services/templates.js';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.env.DRY_RUN === '1';
 
-function isBeforeStartDate() {
+function isBeforeStartDate(): boolean {
   const start = process.env.POST_START_DATE;
   if (!start) return false;
   const startDate = new Date(start);
@@ -28,7 +28,7 @@ function isBeforeStartDate() {
   return today < startDate;
 }
 
-async function run() {
+async function run(): Promise<void> {
   console.log('[tweet-job] Starting…');
   if (DRY_RUN) console.log('[tweet-job] DRY_RUN=true – will not post to X');
 
@@ -55,7 +55,7 @@ async function run() {
       try {
         tweetText = (await generateTweet(prompt))?.trim() || '';
       } catch (err) {
-        console.warn('[tweet-job] LLM failed, using fallback template:', err.message);
+        console.warn('[tweet-job] LLM failed, using fallback template:', (err as Error).message);
       }
 
       if (!tweetText) {
@@ -86,7 +86,7 @@ async function run() {
       console.error('[tweet-job] X post failed:', result.error);
     }
   } catch (err) {
-    console.error('[tweet-job] Error:', err.message);
+    console.error('[tweet-job] Error:', (err as Error).message);
     throw err;
   }
 }

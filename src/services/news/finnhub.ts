@@ -3,10 +3,16 @@
  * Returns items in shared shape: { headline, summary, url, source, date }[]
  */
 
+import type { NewsItem } from '../../types.js';
+
 const API_KEY = process.env.FINNHUB_API_KEY;
 const BASE_URL = 'https://finnhub.io/api/v1';
 
-export async function fetchFinnhubNews(options = {}) {
+export interface FetchFinnhubNewsOptions {
+  category?: string;
+}
+
+export async function fetchFinnhubNews(options: FetchFinnhubNewsOptions = {}): Promise<NewsItem[]> {
   const category = options.category || 'general';
 
   if (!API_KEY) {
@@ -29,10 +35,10 @@ export async function fetchFinnhubNews(options = {}) {
       return [];
     }
 
-    const items = await res.json();
+    const items = (await res.json()) as Array<{ headline?: string; summary?: string; url?: string; datetime?: number }>;
     if (!Array.isArray(items)) return [];
 
-    return items.map((item) => ({
+    return items.map((item): NewsItem => ({
       headline: item.headline || '',
       summary: item.summary || '',
       url: item.url || '',
@@ -40,7 +46,7 @@ export async function fetchFinnhubNews(options = {}) {
       date: item.datetime ? new Date(item.datetime * 1000).toISOString() : '',
     }));
   } catch (err) {
-    console.warn('Finnhub news fetch failed:', err.message);
+    console.warn('Finnhub news fetch failed:', (err as Error).message);
     return [];
   }
 }

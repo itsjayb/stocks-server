@@ -63,10 +63,41 @@ This starts the scheduler as a background process. Posting will begin on or afte
 
 You can also keep the process running with `npm run schedule` in a terminal, or use system cron to run `npm run tweet` 6 times per day at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00.
 
+## Chart pattern scan (Python + Node)
+
+A separate job fetches daily OHLC bars from Alpaca for a configurable list of symbols, runs a Python script that detects chart patterns (e.g. head & shoulders, inverse head & shoulders), and prints JSON results. Suitable for overnight or scheduled runs.
+
+**Single source of truth:** The master list of valid tickers is **`src/stocks.js`** (`STOCKS`). The pattern-scan job only uses symbols that appear in that list.
+
+**Setup:**
+
+1. **Stocks to scan:** Edit `config/stocks-to-scan.json`:
+   - **Explicit list (default):** Set `symbols` to an array of tickers (e.g. `["AAPL", "MSFT", "SPY"]`). Only symbols that exist in `src/stocks.js` are used; others are ignored.
+   - **Master list batch:** Set `"useMasterList": true` to scan from `STOCKS`. Optionally set `"limit": 100` to scan only the first 100 symbols (useful for overnight runs without hitting API limits).
+2. **Python (3.10+):** From the project root:
+   ```bash
+   pip install -r python/requirements.txt
+   ```
+   Uses the `tradingpattern` package (pandas, numpy).
+
+**Run once:**
+
+```bash
+npm run pattern-scan
+```
+
+This loads symbols from config, fetches the last 365 days of daily bars from Alpaca (same keys as the tweet pipeline), pipes OHLC JSON to `python/pattern_scan.py`, and prints `{ "results": [ { "symbol", "patterns": [ { "type", "date" } ] }, ... ], "errors": [] }`.
+
+**Tests:**
+
+- **Node:** `npm test` runs `node --test tests/`, including `tests/pattern-scan.test.js`, which runs the Python script with fixture OHLC and asserts the output shape. Requires Python 3 and `python/requirements.txt` installed.
+- **Python:** After `pip install -r python/requirements.txt`, run `npm run test:python` (or `cd python && pytest tests/ -v`) to run `python/tests/test_pattern_scan.py`.
+
 ## Requirements
 
 - Node.js 18+ (for native `fetch`).
 - Ollama running on your Raspberry Pi (or the same machine) with a model such as `gemma2:2b`, reachable at `OLLAMA_BASE_URL`.
+- For pattern scan: Python 3.10+ with dependencies in `python/requirements.txt`.
 
 ## What gets advertised
 

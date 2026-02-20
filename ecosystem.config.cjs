@@ -8,9 +8,10 @@ module.exports = {
   apps: [
     {
       name: 'tweet-scheduler',
-      script: 'src/scheduler.js',
+      script: 'src/scheduler.ts',
       cwd: __dirname,
-      interpreter: 'node',
+      interpreter: 'npx',
+      interpreter_args: ['tsx'],
       autorestart: true,
       watch: false,
       max_restarts: 10,

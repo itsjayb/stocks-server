@@ -3,6 +3,8 @@
  * Returns items in shared shape: { headline, summary, url, source, date }[]
  */
 
+import type { NewsItem } from '../../types.js';
+
 const ALPACA_DATA_BASE =
   (process.env.VITE_ALPACA_HISTORY_BASE_URL || '').replace(/\/v2\/stocks\/?$/, '') ||
   'https://data.alpaca.markets';
@@ -12,7 +14,12 @@ const API_SECRET = process.env.VITE_ALPACA_SECRET_KEY;
 const DEFAULT_SYMBOLS = 'AAPL,TSLA,SPY';
 const DEFAULT_LIMIT = 10;
 
-export async function fetchAlpacaNews(options = {}) {
+export interface FetchAlpacaNewsOptions {
+  symbols?: string;
+  limit?: number;
+}
+
+export async function fetchAlpacaNews(options: FetchAlpacaNewsOptions = {}): Promise<NewsItem[]> {
   const symbols = options.symbols || DEFAULT_SYMBOLS;
   const limit = options.limit ?? DEFAULT_LIMIT;
 
@@ -38,10 +45,10 @@ export async function fetchAlpacaNews(options = {}) {
       return [];
     }
 
-    const data = await res.json();
+    const data = (await res.json()) as { news?: Array<{ headline?: string; summary?: string; url?: string; created_at?: string; updated_at?: string }> };
     const items = data.news || [];
 
-    return items.map((item) => ({
+    return items.map((item): NewsItem => ({
       headline: item.headline || '',
       summary: item.summary || '',
       url: item.url || '',
@@ -49,7 +56,7 @@ export async function fetchAlpacaNews(options = {}) {
       date: item.created_at || item.updated_at || '',
     }));
   } catch (err) {
-    console.warn('Alpaca news fetch failed:', err.message);
+    console.warn('Alpaca news fetch failed:', (err as Error).message);
     return [];
   }
 }

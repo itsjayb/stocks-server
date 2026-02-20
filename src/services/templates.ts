@@ -3,6 +3,8 @@
  * All under 280 characters. Use {headline} for optional top news headline.
  */
 
+import type { NewsItem } from '../types.js';
+
 const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online';
 const domain = PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
@@ -25,12 +27,7 @@ const STATIC = [
 
 const MAX_HEADLINE_IN_TWEET = 120;
 
-/**
- * Get a random fallback tweet. If items have at least one headline, use a WITH_HEADLINE template and inject it.
- * @param {{ headline: string }[]} [items] - Optional news items for headline injection
- * @returns {string} Tweet text (≤280 chars)
- */
-export function getFallbackTweet(items = []) {
+export function getFallbackTweet(items: NewsItem[] = []): string {
   const headline = items.length > 0 && items[0].headline
     ? items[0].headline.slice(0, MAX_HEADLINE_IN_TWEET).trim()
     : '';

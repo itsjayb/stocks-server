@@ -1,0 +1,8 @@
+# Chart pattern detection for stocks-server
+# Python >=3.10
+pandas>=2.0.0,<3.0.0
+numpy>=1.24.2,<2.0.0
+tradingpattern>=0.0.5
+
+# Tests
+pytest>=7.0.0

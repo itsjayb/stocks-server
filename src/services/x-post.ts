@@ -4,42 +4,35 @@
 
 import crypto from 'crypto';
 import OAuth from 'oauth-1.0a';
+import type { PostTweetResult } from '../types.js';
 
 const POST_URL = 'https://api.twitter.com/2/tweets';
 const MAX_TWEET_LENGTH = 280;
 
 function getOAuth() {
-  const consumer = {
-    key: process.env.X_API_KEY,
-    secret: process.env.X_API_SECRET,
-  };
-  if (!consumer.key || !consumer.secret) {
+  const key = process.env.X_API_KEY;
+  const secret = process.env.X_API_SECRET;
+  if (!key || !secret) {
     throw new Error('Missing X_API_KEY or X_API_SECRET');
   }
   return new OAuth({
-    consumer,
+    consumer: { key, secret },
     signature_method: 'HMAC-SHA1',
-    hash_function(baseString, key) {
+    hash_function(baseString: string, key: string) {
       return crypto.createHmac('sha1', key).update(baseString).digest('base64');
     },
   });
 }
 
-/**
- * @param {string} text - Tweet text (will be truncated to 280 chars)
- * @returns {{ success: boolean, id?: string, error?: string }}
- */
-export async function postTweet(text) {
+export async function postTweet(text: string): Promise<PostTweetResult> {
   const trimmed = typeof text === 'string' ? text.trim().slice(0, MAX_TWEET_LENGTH) : '';
   if (!trimmed) {
     return { success: false, error: 'Tweet text is empty' };
   }
 
-  const accessToken = {
-    key: process.env.X_ACCESS_TOKEN,
-    secret: process.env.X_ACCESS_TOKEN_SECRET,
-  };
-  if (!accessToken.key || !accessToken.secret) {
+  const accessKey = process.env.X_ACCESS_TOKEN;
+  const accessSecret = process.env.X_ACCESS_TOKEN_SECRET;
+  if (!accessKey || !accessSecret) {
     return { success: false, error: 'Missing X_ACCESS_TOKEN or X_ACCESS_TOKEN_SECRET' };
   }
 
@@ -48,7 +41,7 @@ export async function postTweet(text) {
     method: 'POST',
     url: POST_URL,
   };
-  const authHeader = oauth.toHeader(oauth.authorize(requestData, accessToken));
+  const authHeader = oauth.toHeader(oauth.authorize(requestData, { key: accessKey, secret: accessSecret }));
 
   const res = await fetch(POST_URL, {
     method: 'POST',
@@ -59,7 +52,7 @@ export async function postTweet(text) {
     body: JSON.stringify({ text: trimmed }),
   });
 
-  const data = await res.json().catch(() => ({}));
+  const data = (await res.json().catch(() => ({}))) as { data?: { id?: string }; detail?: string; title?: string; error?: string };
 
   if (!res.ok) {
     const errMsg = data.detail || data.title || data.error || JSON.stringify(data);
