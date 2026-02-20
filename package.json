@@ -1,1 +1,18 @@
-{}
+{
+  "name": "stocks-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/jobs/tweet-job.js",
+  "scripts": {
+    "tweet": "node src/jobs/tweet-job.js",
+    "schedule": "node src/scheduler.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop tweet-scheduler",
+    "pm2:logs": "pm2 logs tweet-scheduler"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "node-cron": "^4.2.1",
+    "oauth-1.0a": "^2.2.6"
+  }
+}
