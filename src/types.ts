@@ -36,6 +36,8 @@ export interface PatternScanConfig {
 export interface PatternScanResultItem {
   symbol: string;
   patterns: Array<{ type: string; date: string }>;
+  /** e.g. "1D-1Y", "1D-2Y", "1M-3Y", "1M-5Y" – which timeframe/lookback produced this result. */
+  lookback?: string;
 }
 
 export interface PatternScanResult {

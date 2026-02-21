@@ -7,23 +7,28 @@
     "tweet": "tsx src/jobs/tweet-job.ts",
     "schedule": "tsx src/scheduler.ts",
     "pattern-scan": "tsx src/jobs/pattern-scan-job.ts",
+    "movers": "tsx src/jobs/movers-job.ts",
+    "dashboard:build": "cd dashboard && npm run build",
+    "dashboard:serve": "tsx src/dashboard-server.ts",
     "test": "node --import tsx --test tests/pattern-scan.test.ts",
     "test:node": "node --test",
     "test:python": "cd python && python3 -m pytest tests/ -v",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "pm2:start": "pm2 start ecosystem.config.cjs",
-    "pm2:stop": "pm2 stop tweet-scheduler",
-    "pm2:logs": "pm2 logs tweet-scheduler"
+    "pm2:stop": "pm2 stop pattern-scheduler dashboard",
+    "pm2:logs": "pm2 logs"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
+    "express": "^5.2.1",
     "node-cron": "^4.2.1",
     "oauth-1.0a": "^2.2.6"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.10.1",
-    "typescript": "^5.7.2",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

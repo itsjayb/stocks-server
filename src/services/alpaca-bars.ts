@@ -14,12 +14,16 @@ const API_SECRET = process.env.VITE_ALPACA_SECRET_KEY;
 const DEFAULT_DAYS = 365;
 const MAX_LIMIT = 10000;
 
+export type AlpacaTimeframe = '1Day' | '1Month';
+
 export interface FetchAlpacaBarsOptions {
   start?: string | Date;
   end?: string | Date;
   days?: number;
   limit?: number;
   adjustment?: string;
+  /** Bar size: 1Day (default) or 1Month for longer lookbacks. */
+  timeframe?: AlpacaTimeframe;
 }
 
 export async function fetchAlpacaBars(symbols: string[], options: FetchAlpacaBarsOptions = {}): Promise<BarsMap> {
@@ -30,16 +34,25 @@ export async function fetchAlpacaBars(symbols: string[], options: FetchAlpacaBar
     return {};
   }
 
-  const end = options.end ? new Date(options.end) : new Date();
+  // Default end to yesterday so we never request same-day ("recent SIP") data;
+  // free Alpaca subscriptions don't allow querying recent SIP data (403).
+  const end = options.end
+    ? new Date(options.end)
+    : (() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday;
+      })();
   const days = options.days ?? DEFAULT_DAYS;
   const start = options.start
     ? new Date(options.start)
     : new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
   const limit = options.limit ?? Math.min(MAX_LIMIT, symbols.length * 500);
 
+  const timeframe = options.timeframe ?? '1Day';
   const url = new URL(`${ALPACA_DATA_BASE}/v2/stocks/bars`);
   url.searchParams.set('symbols', symbols.join(','));
-  url.searchParams.set('timeframe', '1Day');
+  url.searchParams.set('timeframe', timeframe);
   url.searchParams.set('start', start.toISOString().slice(0, 10));
   url.searchParams.set('end', end.toISOString().slice(0, 10));
   url.searchParams.set('limit', String(limit));
