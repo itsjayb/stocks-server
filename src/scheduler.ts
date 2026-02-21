@@ -8,6 +8,7 @@ import 'dotenv/config';
 import cron from 'node-cron';
 import { spawn } from 'child_process';
 import { join } from 'path';
+import { startMoversSync } from './jobs/movers-sync-job.js';
 
 const tweetJobPath = join(process.cwd(), 'src', 'jobs', 'tweet-job.ts');
 const patternScanJobPath = join(process.cwd(), 'src', 'jobs', 'pattern-scan-job.ts');
@@ -47,3 +48,11 @@ if (RUN_TWEET_JOB) {
 
 console.log('[scheduler] Pattern scan will run daily at 3:00 PM Central.');
 cron.schedule(PATTERN_SCAN_SCHEDULE, runPatternScanJob, { timezone: 'America/Chicago' });
+
+// Movers sync: polls Alpaca every 90s during market hours and writes to Supabase.
+const RUN_MOVERS_SYNC = process.env.RUN_MOVERS_SYNC !== 'false'; // enabled by default
+if (RUN_MOVERS_SYNC) {
+  startMoversSync();
+} else {
+  console.log('[scheduler] Movers sync disabled (RUN_MOVERS_SYNC=false).');
+}
