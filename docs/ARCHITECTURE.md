@@ -113,17 +113,18 @@ alpaca-bars.ts ◄──── alpaca-movers.ts
 
 ---
 
-## Scheduling Timeline (Central Time)
+## Scheduling Timeline (Central Time, Mon–Fri)
 
-| Time | Job | Frequency |
-|------|-----|-----------|
-| Market hours (9:30–16:00) every 30 min | Smart Movers | ~13×/day |
-| Market hours every 30 min | Momentum Scanner | ~13×/day |
-| 15:00 | Pattern Scan | Daily |
-| 16:00 | Sector Momentum | Daily |
-| 17:00 | Stock Picks | Daily |
-| 17:30 | Market Insights | Daily |
-| 8,10,12,14,16,18 | Tweet Job | 6×/day (when enabled) |
+| Time (CT) | Job | Frequency |
+|-----------|-----|-----------|
+| 9:00 AM – 2:30 PM, every 30 min | Smart Movers | 12×/day |
+| 9:00 AM – 2:30 PM, every 30 min | Momentum Scanner | 12×/day |
+| 3:00 PM | Pattern Scan (Python) | Daily |
+| 3:15 PM | Pattern Alerts (JS) | Daily |
+| 4:00 PM | Sector Momentum | Daily |
+| 5:00 PM | Stock Picks | Daily |
+| 5:30 PM | Market Insights | Daily |
+| 8, 10, 12, 2, 4, 6 PM | Tweet Job | 6×/day (when enabled) |
 
 ---
 
