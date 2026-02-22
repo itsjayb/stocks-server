@@ -12,6 +12,7 @@ import type {
   MomentumScanRow,
   StockPick,
   MarketInsight,
+  ServiceTierRow,
 } from '../types.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
@@ -187,4 +188,19 @@ export async function fetchMarketInsights(date?: string) {
   const { data, error } = await sb.from('market_insights').select('*').eq('insight_date', d).order('priority');
   if (error) { console.error('[supabase] fetchMarketInsights error:', error.message); return []; }
   return data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Service tiers (pricing: free, 4_99, 9_99)
+// ---------------------------------------------------------------------------
+
+export async function fetchServiceTiers(): Promise<ServiceTierRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from('service_tiers').select('*').order('sort_order');
+  if (error) {
+    console.error('[supabase] fetchServiceTiers error:', error.message);
+    return [];
+  }
+  return (data ?? []) as ServiceTierRow[];
 }

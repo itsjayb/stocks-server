@@ -205,3 +205,29 @@ export interface MarketInsightsResult {
   created_at: string;
   insights: MarketInsight[];
 }
+
+// ---------------------------------------------------------------------------
+// Service tiers (for pricing: free, $4.99, $9.99)
+// ---------------------------------------------------------------------------
+
+export type ServiceTierKey = 'free' | '4_99' | '9_99';
+
+export type ServiceKey =
+  | 'smart_movers'
+  | 'momentum_scans'
+  | 'sector_momentum'
+  | 'pattern_scan'
+  | 'pattern_alerts'
+  | 'stock_picks'
+  | 'market_insights'
+  | 'tweet';
+
+export interface ServiceTierRow {
+  service_key: ServiceKey;
+  tier: ServiceTierKey;
+  name: string;
+  description: string;
+  /** Supabase table name for this service's data, or null if not stored in DB (e.g. tweet). */
+  table_name: string | null;
+  sort_order: number;
+}
