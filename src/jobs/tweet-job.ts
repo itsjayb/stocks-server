@@ -15,7 +15,7 @@ import { generateTweet } from '../services/ollama.js';
 import { postTweet } from '../services/x-post.js';
 import { getFallbackTweet } from '../services/templates.js';
 import { getTrendingSymbols } from '../services/trending.js';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.env.DRY_RUN === '1';
 const SKIP_POST = process.env.SKIP_POST === 'true' || process.env.SKIP_POST === '1';
@@ -56,9 +56,25 @@ async function run(): Promise<void> {
       const prompt = buildPrompt(newsString);
 
       try {
+        console.log('[tweet-job] Calling Ollama', {
+          baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+          envModel: process.env.OLLAMA_MODEL || null,
+          promptLength: prompt.length,
+          promptPreview: prompt.slice(0, 1000),
+        });
+
         tweetText = (await generateTweet(prompt))?.trim() || '';
+
+        if (tweetText) {
+          console.log('[tweet-job] Ollama returned text', { length: tweetText.length, preview: tweetText.slice(0, 200) });
+        }
       } catch (err) {
-        console.warn('[tweet-job] LLM failed, using fallback template:', (err as Error).message);
+        console.error('[tweet-job] LLM failed, using fallback template:', (err as Error).message);
+        // Log full error for troubleshooting
+        // eslint-disable-next-line no-console
+        console.error('[tweet-job] LLM error details:', err);
+        // Also log the prompt preview so we can reproduce locally if needed
+        console.log('[tweet-job] Prompt preview (truncated):', prompt.slice(0, 2000));
       }
 
       if (!tweetText) {
@@ -103,6 +119,18 @@ async function run(): Promise<void> {
       return;
     }
 
+    // Prevent posting the exact same tweet back-to-back by storing last posted tweet.
+    const LAST_TWEET_PATH = new URL('../../config/last_tweet.txt', import.meta.url);
+    try {
+      const prev = await readFile(LAST_TWEET_PATH, 'utf8').catch(() => '');
+      if (prev && prev.trim() === tweetText.trim()) {
+        console.log('[tweet-job] Tweet is identical to last posted tweet; skipping to avoid duplicate.');
+        return;
+      }
+    } catch (err) {
+      // ignore read errors
+    }
+
     console.log('[tweet-job] Tweet:', tweetText.slice(0, 80) + (tweetText.length > 80 ? '…' : ''));
 
     if (DRY_RUN || SKIP_POST) {
@@ -113,12 +141,23 @@ async function run(): Promise<void> {
       }
       console.log('[tweet-job] Would post the following tweet:');
       console.log(tweetText);
+      // In dry run, still write last_tweet file so subsequent runs won't duplicate
+      try {
+        await writeFile(new URL('../../config/last_tweet.txt', import.meta.url), tweetText.trim(), 'utf8');
+      } catch (err) {
+        // ignore write errors in dry run
+      }
       return;
     }
 
     const result = await postTweet(tweetText);
     if (result.success) {
       console.log('[tweet-job] Posted to X. Tweet ID:', result.id);
+      try {
+        await writeFile(new URL('../../config/last_tweet.txt', import.meta.url), tweetText.trim(), 'utf8');
+      } catch (err) {
+        console.warn('[tweet-job] Could not write last_tweet file:', (err as Error).message);
+      }
     } else {
       console.error('[tweet-job] X post failed:', result.error);
     }

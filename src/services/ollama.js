@@ -3,7 +3,7 @@
  */
 
 const BASE_URL = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/$/, '');
-const MODEL = process.env.OLLAMA_MODEL || 'gemma2:2b';
+const MODEL = process.env.OLLAMA_MODEL || 'llama3.2:latest';
 const TIMEOUT_MS = 120000;
 
 export async function generateTweet(prompt) {

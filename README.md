@@ -11,7 +11,7 @@ Required for the tweet pipeline:
 
 - **Alpaca:** `VITE_ALPACA_HISTORY_BASE_URL`, `VITE_ALPACA_API_KEY`, `VITE_ALPACA_SECRET_KEY` (news + data).
 - **X (Twitter):** `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` (OAuth 1.0a for posting).
-- **Ollama:** `OLLAMA_BASE_URL` (e.g. `http://<raspberry-pi-ip>:11434` or `http://localhost:11434` if the server runs on the same Pi), optional `OLLAMA_MODEL` (default `gemma2:2b`).
+- **Ollama:** `OLLAMA_BASE_URL` (e.g. `http://<raspberry-pi-ip>:11434` or `http://localhost:11434` if the server runs on the same Pi), optional `OLLAMA_MODEL` (default `llama3.2:latest`).
 - **Finnhub:** `FINNHUB_API_KEY` (free at [finnhub.io](https://finnhub.io)).
 - **Alpha Vantage:** `ALPHA_VANTAGE_API_KEY` (free at [alphavantage.co](https://www.alphavantage.co/support/#api-key)).
 - **Promo:** `PROMO_WEBSITE_URL` (default `https://learnstockmarket.online`).
@@ -96,7 +96,7 @@ This loads symbols from config, fetches the last 365 days of daily bars from Alp
 ## Requirements
 
 - Node.js 18+ (for native `fetch`).
-- Ollama running on your Raspberry Pi (or the same machine) with a model such as `gemma2:2b`, reachable at `OLLAMA_BASE_URL`.
+- Ollama running on your Raspberry Pi (or the same machine) with a model such as `llama3.2:latest`, reachable at `OLLAMA_BASE_URL`.
 - For pattern scan: Python 3.10+ with dependencies in `python/requirements.txt`.
 
 ## What gets advertised
