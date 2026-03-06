@@ -53,7 +53,16 @@ export function buildNewsString(items) {
  * Build the full prompt for the LLM (system/context + task + news).
  */
 export function buildPrompt(newsString) {
-  const systemContext = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION}`;
-  const task = `Using the market news below, write exactly one tweet (under 280 characters). You may mention the news and optionally add a short CTA to learn patterns or strategies at ${PROMO_URL} (or use the URL) when it fits. Output only the tweet text, no quotes or explanation.`;
+  const systemContext = `You write tweets for a stock market learning site. ${SITE_DESCRIPTION}
+
+Your voice: Sound like a real person on X, not a bot or a press release. Be conversational, punchy, or a little opinionated. Share the news like you're telling your timeline what just happened — something you'd actually say. We want people to retweet, quote tweet, and reply. Hot takes, questions, or "wait for real?" energy are good when they fit.`;
+  const task = `Using the market news below, write exactly one tweet.
+
+Rules:
+- Under 260 characters (we will append a few $TICKER symbols after your text).
+- Share the news like a person: casual, engaging, human. Make people want to react and comment.
+- You may naturally mention 1–2 stock tickers with $ (e.g. $AAPL, $TSLA) in your sentence when they fit the story.
+- Optionally add a short CTA or link to ${PROMO_URL} only when it fits naturally — don't force it.
+- Output only the tweet text. No quotes, no explanation, no "Tweet:" prefix.`;
   return `${systemContext}\n\n${task}\n\nMarket news:\n${newsString}`;
 }
