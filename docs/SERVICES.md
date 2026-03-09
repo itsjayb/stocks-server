@@ -153,7 +153,7 @@ This document tracks every service in the stocks-server platform. Each service f
 | Alpaca Bars | `src/services/alpaca-bars.ts` | Fetch OHLC bar data from Alpaca |
 | Alpaca Movers | `src/services/alpaca-movers.ts` | Fetch raw top gainers/losers |
 | Trending | `src/services/trending.ts` | Top N symbols by volume |
-| Aggregate News | `src/services/aggregate-news.ts` | Merge news from Alpaca/Finnhub/AlphaVantage |
+| Aggregate News | `src/services/aggregate-news.ts` | Merge news, build LLM prompts, tweet type rotation (see [TWEET_PROMPTS.md](TWEET_PROMPTS.md)) |
 | Ollama | `src/services/ollama.ts` | LLM tweet generation |
 | X Post | `src/services/x-post.ts` | Post to Twitter/X |
 | Templates | `src/services/templates.ts` | Fallback tweet templates |

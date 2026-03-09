@@ -10,11 +10,12 @@ import 'dotenv/config';
 import { fetchAlpacaNews } from '../services/news/alpaca.js';
 import { fetchFinnhubNews } from '../services/news/finnhub.js';
 import { fetchAlphaVantageNews } from '../services/news/alphavantage.js';
-import { aggregateNews, buildNewsString, buildPrompt } from '../services/aggregate-news.js';
+import { aggregateNews, buildNewsString, buildPromptForType, pickTweetType } from '../services/aggregate-news.js';
 import { generateTweet } from '../services/ollama.js';
 import { postTweet } from '../services/x-post.js';
 import { getFallbackTweet } from '../services/templates.js';
 import { getTrendingSymbols } from '../services/trending.js';
+import { pickPatternOrStrategy } from '../services/pattern-strategy-pick.js';
 import { readFile, writeFile } from 'fs/promises';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.env.DRY_RUN === '1';
@@ -49,16 +50,41 @@ async function run(): Promise<void> {
 
     const items = aggregateNews([alpaca, finnhub, alphavantage]);
 
+    // Rotate tweet type so we don't advertise the website on every post: news, website, stocks.
+    const tweetType = pickTweetType();
+
+    // Load candidate symbols once for prompt and optional cash-tag append
+    let candidates: string[] = [];
+    try {
+      const raw = await readFile(new URL('../../config/stocks-to-scan.json', import.meta.url));
+      const parsed = JSON.parse(raw.toString());
+      if (Array.isArray(parsed?.symbols)) candidates = parsed.symbols;
+    } catch (err) {
+      // ignore
+    }
+    if (candidates.length === 0) candidates = ['SPY', 'AAPL', 'QQQ'];
+
+    // For website tweets, pick one pattern or strategy so we promote a specific lesson + /tw/ URL.
+    let patternOrStrategy: Awaited<ReturnType<typeof pickPatternOrStrategy>> = null;
+    if (tweetType === 'website') {
+      patternOrStrategy = await pickPatternOrStrategy();
+    }
+
     let tweetText = '';
 
     if (items.length > 0) {
       const newsString = buildNewsString(items);
-      const prompt = buildPrompt(newsString);
+      const prompt = buildPromptForType(newsString, tweetType, {
+        candidateSymbols: candidates,
+        ...(patternOrStrategy && { patternOrStrategy }),
+      });
 
       try {
         console.log('[tweet-job] Calling Ollama', {
           baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
           envModel: process.env.OLLAMA_MODEL || null,
+          tweetType,
+          ...(patternOrStrategy && { patternOrStrategy: patternOrStrategy.name }),
           promptLength: prompt.length,
           promptPreview: prompt.slice(0, 1000),
         });
@@ -78,40 +104,29 @@ async function run(): Promise<void> {
       }
 
       if (!tweetText) {
-        tweetText = getFallbackTweet(items);
+        tweetText = getFallbackTweet(items, tweetType, patternOrStrategy ?? undefined);
         console.log('[tweet-job] Using fallback template (LLM empty or failed).');
       }
     } else {
-      tweetText = getFallbackTweet([]);
+      tweetText = getFallbackTweet([], tweetType, patternOrStrategy ?? undefined);
       console.log('[tweet-job] No news items; using fallback template.');
     }
 
-    // Load candidate symbols from config if available and append trending cash-tags
-    async function loadCandidateSymbols(): Promise<string[]> {
+    if (tweetType === 'news' || tweetType === 'stocks') {
       try {
-        const raw = await readFile(new URL('../../config/stocks-to-scan.json', import.meta.url));
-        const parsed = JSON.parse(raw.toString());
-        if (Array.isArray(parsed?.symbols)) return parsed.symbols;
+        let top = await getTrendingSymbols(candidates, 3);
+        if (!top || top.length === 0) {
+          top = candidates.length ? candidates.slice(0, 3) : ['SPY', 'AAPL', 'QQQ'];
+        }
+        if (top && top.length) {
+          const offset = new Date().getDate() % top.length;
+          const rotated = top.slice(offset).concat(top.slice(0, offset));
+          const cashTags = rotated.map((s) => `$${s}`).join(' ');
+          tweetText = `${tweetText} ${cashTags}`;
+        }
       } catch (err) {
-        // ignore and fallback
+        console.warn('[tweet-job] Could not fetch trending symbols:', (err as Error).message);
       }
-      return ['SPY', 'AAPL', 'QQQ'];
-    }
-
-    try {
-      const candidates = await loadCandidateSymbols();
-      let top = await getTrendingSymbols(candidates, 3);
-      if (!top || top.length === 0) {
-        top = (candidates && candidates.length) ? candidates.slice(0, 3) : ['SPY', 'AAPL', 'QQQ'];
-      }
-      if (top && top.length) {
-        const offset = new Date().getDate() % top.length;
-        const rotated = top.slice(offset).concat(top.slice(0, offset));
-        const cashTags = rotated.map((s) => `$${s}`).join(' ');
-        tweetText = `${tweetText} ${cashTags}`;
-      }
-    } catch (err) {
-      console.warn('[tweet-job] Could not fetch trending symbols:', (err as Error).message);
     }
 
     if (!tweetText) {

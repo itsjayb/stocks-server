@@ -25,8 +25,20 @@ test('getFallbackTweet without items returns a static template', () => {
   try {
     Math.random = () => 0; // deterministic
     const tweet = getFallbackTweet([]);
-    // should contain domain or patterns path
+    // should contain domain or patterns path (default type is website)
     assert.match(tweet, /learnstockmarket.online/);
+    assert.ok(tweet.length <= 280);
+  } finally {
+    Math.random = origRand;
+  }
+});
+
+test('getFallbackTweet with type news has no website URL', () => {
+  const origRand = Math.random;
+  try {
+    Math.random = () => 0;
+    const tweet = getFallbackTweet([], 'news');
+    assert.doesNotMatch(tweet, /learnstockmarket\.online/);
     assert.ok(tweet.length <= 280);
   } finally {
     Math.random = origRand;
