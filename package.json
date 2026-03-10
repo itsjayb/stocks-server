@@ -14,6 +14,7 @@
     "momentum-scanner": "tsx src/jobs/momentum-scanner-job.ts",
     "stock-picks": "tsx src/jobs/stock-picks-job.ts",
     "market-insights": "tsx src/jobs/market-insights-job.ts",
+    "test:trending": "tsx scripts/test-trending-symbols.ts",
     "dashboard:build": "cd dashboard && npm run build",
     "dashboard:serve": "tsx src/dashboard-server.ts",
     "test": "node --import tsx --test tests/pattern-scan.test.ts",

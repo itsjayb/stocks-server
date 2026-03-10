@@ -67,13 +67,13 @@ You can also keep the process running with `npm run schedule` in a terminal, or 
 
 A separate job fetches daily OHLC bars from Alpaca for a configurable list of symbols, runs a Python script that detects chart patterns (e.g. head & shoulders, inverse head & shoulders), and prints JSON results. Suitable for overnight or scheduled runs.
 
-**Single source of truth:** The master list of valid tickers is **`src/stocks.js`** (`STOCKS`). The pattern-scan job only uses symbols that appear in that list.
+**Single source of truth:** The master list of valid tickers is **`src/stocks.ts`** (`STOCKS`). The pattern-scan job only uses symbols that appear in that list. The **tweet job** also uses this config for which symbols to suggest to the LLM and which to use for appended cash tags (see [docs/TWEET_PROMPTS.md](docs/TWEET_PROMPTS.md)).
 
 **Setup:**
 
 1. **Stocks to scan:** Edit `config/stocks-to-scan.json`:
-   - **Explicit list (default):** Set `symbols` to an array of tickers (e.g. `["AAPL", "MSFT", "SPY"]`). Only symbols that exist in `src/stocks.js` are used; others are ignored.
-   - **Master list batch:** Set `"useMasterList": true` to scan from `STOCKS`. Optionally set `"limit": 100` to scan only the first 100 symbols (useful for overnight runs without hitting API limits).
+   - **Explicit list:** Set `symbols` to an array of tickers (e.g. `["AAPL", "MSFT", "SPY", "XOM", "USO"]`). Only symbols that exist in `src/stocks.ts` are used; others are ignored.
+   - **Master list batch:** Set `"useMasterList": true` to use the full `STOCKS` list. Optionally set `"limit": 100` (pattern-scan) or `"limit": 500` (tweet job caps at 500 when useMasterList is true with no limit).
 2. **Python (3.10+):** From the project root:
    ```bash
    pip install -r python/requirements.txt
@@ -92,6 +92,8 @@ This loads symbols from config, fetches the last 365 days of daily bars from Alp
 
 - **Node:** `npm test` runs `node --test tests/`, including `tests/pattern-scan.test.js`, which runs the Python script with fixture OHLC and asserts the output shape. Requires Python 3 and `python/requirements.txt` installed.
 - **Python:** After `pip install -r python/requirements.txt`, run `npm run test:python` (or `cd python && pytest tests/ -v`) to run `python/tests/test_pattern_scan.py`.
+
+**Tweet symbol selection:** To see which symbols the tweet job would use as “trending” or movers (without posting), run `npm run test:trending`. See [docs/TWEET_PROMPTS.md](docs/TWEET_PROMPTS.md) for how candidates and cash tags work.
 
 ## Requirements
 

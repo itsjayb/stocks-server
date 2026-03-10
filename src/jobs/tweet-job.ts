@@ -15,8 +15,11 @@ import { generateTweet } from '../services/ollama.js';
 import { postTweet } from '../services/x-post.js';
 import { getFallbackTweet } from '../services/templates.js';
 import { getTrendingSymbols } from '../services/trending.js';
+import { getSmartMovers } from '../services/smart-movers.js';
 import { pickPatternOrStrategy } from '../services/pattern-strategy-pick.js';
 import { readFile, writeFile } from 'fs/promises';
+import { STOCKS } from '../stocks.js';
+import type { PatternScanConfig } from '../types.js';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.env.DRY_RUN === '1';
 const SKIP_POST = process.env.SKIP_POST === 'true' || process.env.SKIP_POST === '1';
@@ -53,12 +56,24 @@ async function run(): Promise<void> {
     // Rotate tweet type so we don't advertise the website on every post: news, website, stocks.
     const tweetType = pickTweetType();
 
-    // Load candidate symbols once for prompt and optional cash-tag append
+    // Load candidate symbols once for prompt and optional cash-tag append.
+    // Supports useMasterList (STOCKS from src/stocks.ts) or explicit "symbols" array.
     let candidates: string[] = [];
     try {
-      const raw = await readFile(new URL('../../config/stocks-to-scan.json', import.meta.url));
-      const parsed = JSON.parse(raw.toString());
-      if (Array.isArray(parsed?.symbols)) candidates = parsed.symbols;
+      const raw = await readFile(new URL('../../config/stocks-to-scan.json', import.meta.url), 'utf8');
+      const config: PatternScanConfig = JSON.parse(raw);
+      const stocksSet = new Set(STOCKS);
+      if (config.useMasterList === true) {
+        candidates = [...STOCKS];
+        if (typeof config.limit === 'number' && config.limit > 0) {
+          candidates = candidates.slice(0, config.limit);
+        } else {
+          // Default cap so we don't request bars for 2000+ symbols in one go
+          candidates = candidates.slice(0, 500);
+        }
+      } else if (Array.isArray(config.symbols) && config.symbols.length > 0) {
+        candidates = config.symbols.filter((s) => stocksSet.has(s));
+      }
     } catch (err) {
       // ignore
     }
@@ -114,7 +129,23 @@ async function run(): Promise<void> {
 
     if (tweetType === 'news' || tweetType === 'stocks') {
       try {
-        let top = await getTrendingSymbols(candidates, 3);
+        let top: string[] = [];
+        // For "stocks" tweets use smart movers when available so we get names that are actually
+        // moving today (e.g. oil stocks when oil/Iran is in the news). Fall back to trending by volume.
+        if (tweetType === 'stocks') {
+          try {
+            const { movers } = await getSmartMovers({ top: 5 });
+            const gainers = movers.filter((m) => m.direction === 'gainer').slice(0, 3);
+            if (gainers.length > 0) {
+              top = gainers.map((m) => m.symbol);
+            }
+          } catch {
+            // ignore, use trending below
+          }
+        }
+        if (top.length === 0) {
+          top = await getTrendingSymbols(candidates, 3);
+        }
         if (!top || top.length === 0) {
           top = candidates.length ? candidates.slice(0, 3) : ['SPY', 'AAPL', 'QQQ'];
         }
