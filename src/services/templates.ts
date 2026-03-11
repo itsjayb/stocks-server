@@ -30,10 +30,10 @@ const PATTERN_WITH_ITEM = [
 ];
 
 const PATTERN_STATIC = [
-  `Head & Shoulders is known to have roughly a 70% success rate when confirmed. Learn it step by step: ${domain}/patterns`,
-  `New to trading? Learn support, resistance, and trend patterns step by step. ${domain}/patterns`,
-  `Double Top and Double Bottom – reversal patterns pros use. Learn them: ${domain}/patterns`,
-  `Support, resistance, trend patterns – learn them with structured lessons. ${domain}/patterns`,
+  `Head & Shoulders is known to have roughly a 70% success rate when confirmed. Learn it step by step: ${domain}/tw/patterns`,
+  `New to trading? Learn support, resistance, and trend patterns step by step. ${domain}/tw/patterns`,
+  `Double Top and Double Bottom – reversal patterns pros use. Learn them: ${domain}/tw/patterns`,
+  `Support, resistance, trend patterns – learn them with structured lessons. ${domain}/tw/patterns`,
 ];
 
 /** Strategy promo: can include tickers (ETFs). Focus on strategy + URL. */
@@ -43,9 +43,9 @@ const STRATEGY_WITH_ITEM = [
 ];
 
 const STRATEGY_STATIC = [
-  `Plan your entries and exits like a pro. Trading strategies explained: ${domain}/strategies`,
-  `Moving Average Crossover – simple and effective. Learn it: ${domain}/strategies`,
-  `Entries, exits, and risk – walk through real trading strategies. ${domain}/strategies`,
+  `Plan your entries and exits like a pro. Trading strategies explained: ${domain}/tw/strategies`,
+  `Moving Average Crossover – simple and effective. Learn it: ${domain}/tw/strategies`,
+  `Entries, exits, and risk – walk through real trading strategies. ${domain}/tw/strategies`,
 ];
 
 const MAX_HEADLINE_IN_TWEET = 120;

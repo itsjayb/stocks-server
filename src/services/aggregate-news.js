@@ -78,7 +78,7 @@ export function buildPromptForType(newsString, type, options = {}) {
     if (patternOrStrategy) {
       task = `Write exactly ONE tweet that promotes this specific ${patternOrStrategy.kind}: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook (e.g. why it matters or a stat like "known to have roughly 70% success rate when confirmed" where relevant). End with this exact URL: ${patternOrStrategy.url}. Do NOT paste a long news headline. ${rules}`;
     } else {
-      task = `Write exactly ONE tweet that promotes our educational site. Do NOT paste a long news headline. Focus on ONE specific pattern or strategy (e.g. Head & Shoulders, double top/bottom, support and resistance, moving average crossovers). Add a concrete hook when possible (e.g. "Head & Shoulders is known to have roughly a 70% success rate when confirmed" or "learn to spot the pattern pros use"). End with our URL: ${PROMO_URL} or ${DOMAIN}. ${rules}`;
+      task = `Write exactly ONE tweet that promotes our educational site. Do NOT paste a long news headline. Focus on ONE specific pattern or strategy (e.g. Head & Shoulders, double top/bottom, support and resistance, moving average crossovers). Add a concrete hook when possible (e.g. "Head & Shoulders is known to have roughly a 70% success rate when confirmed" or "learn to spot the pattern pros use"). End with our URL: ${PROMO_URL}/tw or ${DOMAIN}/tw. ${rules}`;
     }
     return `${system}\n\n${task}\n\nOptional context from recent market news (do not quote verbatim):\n${newsString}`;
   }
