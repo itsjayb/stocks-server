@@ -23,6 +23,7 @@ export type CardTemperature = 'hot' | 'potential' | 'cool'
 export interface PatternCard {
   symbol: string
   pattern: { type: string; date: string } | null
+  patternTypes: string[]
   patternCount: number
   volume_ratio: number
   high_volume: boolean

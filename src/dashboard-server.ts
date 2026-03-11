@@ -50,11 +50,11 @@ app.get('/api/pattern-results', async (_req, res) => {
 });
 
 const MOCK_CARDS = [
-  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' as const },
-  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' as const },
-  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' as const },
-  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' as const },
-  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' as const },
+  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternTypes: ['head_shoulders'], patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' as const },
+  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternTypes: ['golden_cross', 'breakout'], patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' as const },
+  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternTypes: ['breakout'], patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' as const },
+  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternTypes: ['bullish_engulfing'], patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' as const },
+  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternTypes: ['double_bottom'], patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' as const },
 ];
 
 // Pattern cards: pattern results merged with volume (smart_movers + momentum_scans)
@@ -93,17 +93,36 @@ app.get('/api/pattern-cards', async (req, res) => {
         });
       }
     }
-    const cards = (patternData.withPatterns ?? []).map(
-      (item: { symbol: string; patterns: Array<{ type: string; date: string }> }) => {
+    const mergedBySymbol = new Map<string, { symbol: string; patterns: Array<{ type: string; date: string }> }>();
+    for (const item of (patternData.withPatterns ?? []) as Array<{ symbol: string; patterns: Array<{ type: string; date: string }> }>) {
+      const existing = mergedBySymbol.get(item.symbol);
+      if (!existing) {
+        mergedBySymbol.set(item.symbol, {
+          symbol: item.symbol,
+          patterns: [...item.patterns],
+        });
+        continue;
+      }
+      existing.patterns.push(...item.patterns);
+    }
+
+    const cards = Array.from(mergedBySymbol.values()).map(
+      (item) => {
+        const uniquePatterns = [
+          ...new Map(
+            item.patterns.map((p) => [`${p.type}::${p.date}`, p] as const),
+          ).values(),
+        ];
         const vol = volumeBySymbol.get(item.symbol) ?? { volume_ratio: 0, unusual_volume: false };
-        const primaryPattern = item.patterns[0];
+        const primaryPattern = uniquePatterns[0];
         let temperature: 'hot' | 'potential' | 'cool' = 'cool';
         if (vol.unusual_volume || vol.volume_ratio >= 2) temperature = 'hot';
-        else if (vol.volume_ratio >= 1.5 || item.patterns.length > 1) temperature = 'potential';
+        else if (vol.volume_ratio >= 1.5 || uniquePatterns.length > 1) temperature = 'potential';
         return {
           symbol: item.symbol,
           pattern: primaryPattern ? { type: primaryPattern.type, date: primaryPattern.date } : null,
-          patternCount: item.patterns.length,
+          patternTypes: [...new Set(uniquePatterns.map((p) => p.type))],
+          patternCount: uniquePatterns.length,
           volume_ratio: vol.volume_ratio,
           high_volume: vol.unusual_volume || vol.volume_ratio >= 2,
           temperature,
@@ -114,7 +133,7 @@ app.get('/api/pattern-cards', async (req, res) => {
       scanDate: patternData.scanDate,
       scannedAt: patternData.scannedAt,
       totalScanned: patternData.totalScanned ?? 0,
-      withPatternsCount: patternData.withPatternsCount ?? cards.length,
+      withPatternsCount: cards.length,
       cards,
     });
   } catch (err) {

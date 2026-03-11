@@ -1,27 +1,66 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { PatternCardsPayload, PatternCard } from '@/types/pattern'
 
 const MOCK_CARDS: PatternCard[] = [
-  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' },
-  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' },
-  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' },
-  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' },
-  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' },
+  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternTypes: ['head_shoulders'], patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' },
+  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternTypes: ['golden_cross', 'breakout'], patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' },
+  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternTypes: ['breakout'], patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' },
+  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternTypes: ['bullish_engulfing'], patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' },
+  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternTypes: ['double_bottom'], patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' },
 ]
 
 const data = ref<PatternCardsPayload | null>(null)
 const error = ref<string | null>(null)
 const loading = ref(true)
 const page = ref(1)
+const pageInput = ref('1')
 const perPage = 24
+const selectedPattern = ref('all')
+const symbolQuery = ref('')
 
 const cards = computed<PatternCard[]>(() => data.value?.cards ?? [])
-const totalPages = computed(() => Math.max(1, Math.ceil(cards.value.length / perPage)))
+const availablePatternTypes = computed<string[]>(() => {
+  const allTypes = new Set<string>()
+  for (const card of cards.value) {
+    for (const patternType of card.patternTypes) {
+      allTypes.add(patternType)
+    }
+  }
+  return Array.from(allTypes).sort((a, b) => a.localeCompare(b))
+})
+const filteredCards = computed<PatternCard[]>(() => {
+  const query = symbolQuery.value.trim().toUpperCase()
+  return cards.value.filter((card) => {
+    const matchesPattern =
+      selectedPattern.value === 'all' || card.patternTypes.includes(selectedPattern.value)
+    const matchesSymbol = query.length === 0 || card.symbol.includes(query)
+    return matchesPattern && matchesSymbol
+  })
+})
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredCards.value.length / perPage)))
 const paginated = computed(() => {
   const start = (page.value - 1) * perPage
-  return cards.value.slice(start, start + perPage)
+  return filteredCards.value.slice(start, start + perPage)
 })
+
+function clampPage(value: number): number {
+  return Math.min(Math.max(value, 1), totalPages.value)
+}
+
+function setPage(value: number): void {
+  page.value = clampPage(value)
+  pageInput.value = String(page.value)
+}
+
+function goToPageFromInput(): void {
+  const parsed = Number(pageInput.value)
+  if (!Number.isFinite(parsed)) {
+    pageInput.value = String(page.value)
+    return
+  }
+  setPage(Math.trunc(parsed))
+}
 
 function tradingViewUrl(symbol: string): string {
   return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}`
@@ -30,6 +69,22 @@ function tradingViewUrl(symbol: string): string {
 function formatPatternType(type: string): string {
   return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+function formatPatternList(types: string[]): string {
+  return types.map((type) => formatPatternType(type)).join(', ')
+}
+
+watch(totalPages, () => {
+  if (page.value > totalPages.value) {
+    setPage(totalPages.value)
+    return
+  }
+  pageInput.value = String(page.value)
+})
+
+watch([selectedPattern, symbolQuery], () => {
+  setPage(1)
+})
 
 onMounted(async () => {
   try {
@@ -89,9 +144,40 @@ onMounted(async () => {
     <div v-if="loading" class="loading">Loading…</div>
     <div v-if="error" class="error">{{ error }}</div>
 
+    <div v-if="cards.length > 0" class="filters">
+      <label class="filter-control">
+        Pattern
+        <select v-model="selectedPattern">
+          <option value="all">All patterns</option>
+          <option v-for="patternType in availablePatternTypes" :key="patternType" :value="patternType">
+            {{ formatPatternType(patternType) }}
+          </option>
+        </select>
+      </label>
+
+      <label class="filter-control">
+        Symbol
+        <input
+          v-model="symbolQuery"
+          type="text"
+          placeholder="e.g. AAPL"
+        >
+      </label>
+
+      <div class="results-meta">
+        Showing {{ filteredCards.length }} of {{ cards.length }}
+      </div>
+    </div>
+
     <template v-else-if="cards.length === 0">
       <div class="empty">
         No stocks are found.
+      </div>
+    </template>
+
+    <template v-else-if="filteredCards.length === 0">
+      <div class="empty">
+        No stocks match the current filters.
       </div>
     </template>
 
@@ -113,6 +199,9 @@ onMounted(async () => {
             {{ formatPatternType(item.pattern.type) }}
             <span class="pattern-date">{{ item.pattern.date }}</span>
           </div>
+          <div v-if="item.patternTypes.length > 1" class="pattern-extra">
+            Also found: {{ formatPatternList(item.patternTypes) }}
+          </div>
           <a :href="tradingViewUrl(item.symbol)" target="_blank" rel="noopener" class="chart-link">
             View chart →
           </a>
@@ -120,9 +209,21 @@ onMounted(async () => {
       </div>
 
       <nav v-if="totalPages > 1" class="pagination">
-        <button type="button" :disabled="page <= 1" @click="page--">Prev</button>
+        <button type="button" :disabled="page <= 1" @click="setPage(page - 1)">Prev</button>
+        <form class="page-jump" @submit.prevent="goToPageFromInput">
+          <label for="page-jump-input">Page</label>
+          <input
+            id="page-jump-input"
+            v-model="pageInput"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            aria-label="Go to page number"
+          >
+          <button type="submit">Go</button>
+        </form>
         <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
-        <button type="button" :disabled="page >= totalPages" @click="page++">Next</button>
+        <button type="button" :disabled="page >= totalPages" @click="setPage(page + 1)">Next</button>
       </nav>
     </template>
   </div>
@@ -198,6 +299,34 @@ onMounted(async () => {
 .error {
   color: #e57373;
 }
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.filter-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.filter-control select,
+.filter-control input {
+  min-width: 180px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  background: var(--color-card);
+  color: var(--color-text);
+}
+.results-meta {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
 
 .cards {
   display: grid;
@@ -261,6 +390,11 @@ onMounted(async () => {
   color: var(--color-text-muted);
   margin-top: 0.15rem;
 }
+.pattern-extra {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
 .chart-link {
   font-size: 0.8rem;
   color: var(--color-accent);
@@ -293,6 +427,26 @@ onMounted(async () => {
 .pagination button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.page-jump label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.page-jump input {
+  width: 4.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  background: var(--color-card);
+  color: var(--color-text);
+}
+.page-jump button {
+  padding: 0.35rem 0.65rem;
 }
 .page-info {
   font-size: 0.9rem;
