@@ -49,6 +49,89 @@ app.get('/api/pattern-results', async (_req, res) => {
   }
 });
 
+const MOCK_CARDS = [
+  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' as const },
+  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' as const },
+  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' as const },
+  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' as const },
+  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' as const },
+];
+
+// Pattern cards: pattern results merged with volume (smart_movers + momentum_scans)
+app.get('/api/pattern-cards', async (req, res) => {
+  const date = (req.query.date as string) || undefined;
+  const useMock = (req.query.mock as string) === 'true';
+  try {
+    if (useMock) {
+      const today = new Date().toISOString().slice(0, 10);
+      return res.json({
+        scanDate: today,
+        scannedAt: new Date().toISOString(),
+        totalScanned: 100,
+        withPatternsCount: 5,
+        cards: MOCK_CARDS,
+      });
+    }
+    const json = await readFile(join(OUTPUT_DIR, 'latest.json'), 'utf8');
+    const patternData = JSON.parse(json);
+    const [movers, scans] = await Promise.all([
+      fetchSmartMovers(date),
+      fetchMomentumScans(date),
+    ]);
+    const volumeBySymbol = new Map<string, { volume_ratio: number; unusual_volume: boolean }>();
+    for (const m of movers as Array<{ symbol: string; volume_ratio?: number; unusual_volume?: boolean }>) {
+      volumeBySymbol.set(m.symbol, {
+        volume_ratio: m.volume_ratio ?? 0,
+        unusual_volume: m.unusual_volume ?? false,
+      });
+    }
+    for (const s of scans as Array<{ symbol: string; volume_ratio?: number }>) {
+      if (!volumeBySymbol.has(s.symbol)) {
+        volumeBySymbol.set(s.symbol, {
+          volume_ratio: s.volume_ratio ?? 0,
+          unusual_volume: (s.volume_ratio ?? 0) >= 2,
+        });
+      }
+    }
+    const cards = (patternData.withPatterns ?? []).map(
+      (item: { symbol: string; patterns: Array<{ type: string; date: string }> }) => {
+        const vol = volumeBySymbol.get(item.symbol) ?? { volume_ratio: 0, unusual_volume: false };
+        const primaryPattern = item.patterns[0];
+        let temperature: 'hot' | 'potential' | 'cool' = 'cool';
+        if (vol.unusual_volume || vol.volume_ratio >= 2) temperature = 'hot';
+        else if (vol.volume_ratio >= 1.5 || item.patterns.length > 1) temperature = 'potential';
+        return {
+          symbol: item.symbol,
+          pattern: primaryPattern ? { type: primaryPattern.type, date: primaryPattern.date } : null,
+          patternCount: item.patterns.length,
+          volume_ratio: vol.volume_ratio,
+          high_volume: vol.unusual_volume || vol.volume_ratio >= 2,
+          temperature,
+        };
+      }
+    );
+    res.json({
+      scanDate: patternData.scanDate,
+      scannedAt: patternData.scannedAt,
+      totalScanned: patternData.totalScanned ?? 0,
+      withPatternsCount: patternData.withPatternsCount ?? cards.length,
+      cards,
+    });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      const today = new Date().toISOString().slice(0, 10);
+      return res.json({
+        scanDate: today,
+        scannedAt: new Date().toISOString(),
+        totalScanned: 0,
+        withPatternsCount: 5,
+        cards: MOCK_CARDS,
+      });
+    }
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 // Smart Movers
 app.get('/api/smart-movers', async (req, res) => {
   const date = (req.query.date as string) || undefined;

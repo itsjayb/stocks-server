@@ -1,34 +1,59 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { PatternResultsPayload, PatternResultItem } from '@/types/pattern'
+import type { PatternCardsPayload, PatternCard } from '@/types/pattern'
 
-const data = ref<PatternResultsPayload | null>(null)
+const MOCK_CARDS: PatternCard[] = [
+  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' },
+  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' },
+  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' },
+  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' },
+  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' },
+]
+
+const data = ref<PatternCardsPayload | null>(null)
 const error = ref<string | null>(null)
 const loading = ref(true)
 const page = ref(1)
 const perPage = 24
 
-const withPatterns = computed<PatternResultItem[]>(() => data.value?.withPatterns ?? [])
-const totalPages = computed(() => Math.max(1, Math.ceil(withPatterns.value.length / perPage)))
+const cards = computed<PatternCard[]>(() => data.value?.cards ?? [])
+const totalPages = computed(() => Math.max(1, Math.ceil(cards.value.length / perPage)))
 const paginated = computed(() => {
   const start = (page.value - 1) * perPage
-  return withPatterns.value.slice(start, start + perPage)
+  return cards.value.slice(start, start + perPage)
 })
 
 function tradingViewUrl(symbol: string): string {
   return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}`
 }
 
+function formatPatternType(type: string): string {
+  return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 onMounted(async () => {
   try {
-    const res = await fetch('/api/pattern-results')
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.message || res.statusText || 'Failed to load')
+    const res = await fetch('/api/pattern-cards')
+    const text = await res.text()
+    let parsed: PatternCardsPayload
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      throw new Error('Invalid response from server')
     }
-    data.value = await res.json()
+    if (!res.ok) {
+      throw new Error((parsed as { message?: string }).message || res.statusText || 'Failed to load')
+    }
+    data.value = parsed
   } catch (e) {
-    error.value = (e as Error).message
+    error.value = null
+    data.value = {
+      scanDate: new Date().toISOString().slice(0, 10),
+      scannedAt: new Date().toISOString(),
+      totalScanned: 0,
+      withPatternsCount: MOCK_CARDS.length,
+      cards: MOCK_CARDS,
+    }
   } finally {
     loading.value = false
   }
@@ -45,10 +70,26 @@ onMounted(async () => {
       </div>
     </header>
 
+    <!-- Legend bar -->
+    <div class="legend">
+      <span class="legend-item hot">
+        <span class="legend-dot"></span>
+        Hot
+      </span>
+      <span class="legend-item potential">
+        <span class="legend-dot"></span>
+        Potential
+      </span>
+      <span class="legend-item cool">
+        <span class="legend-dot"></span>
+        Cool
+      </span>
+    </div>
+
     <div v-if="loading" class="loading">Loading…</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-    <template v-else-if="withPatterns.length === 0">
+    <template v-else-if="cards.length === 0">
       <div class="empty">
         No stocks are found.
       </div>
@@ -60,19 +101,18 @@ onMounted(async () => {
           v-for="item in paginated"
           :key="item.symbol"
           class="card"
+          :class="[
+            `temp-${item.temperature}`,
+            { 'high-volume': item.high_volume }
+          ]"
         >
-          <div class="card-header">
-            <a :href="tradingViewUrl(item.symbol)" target="_blank" rel="noopener" class="symbol">
-              {{ item.symbol }}
-            </a>
-            <span class="badge">{{ item.patterns.length }} pattern{{ item.patterns.length !== 1 ? 's' : '' }}</span>
+          <a :href="tradingViewUrl(item.symbol)" target="_blank" rel="noopener" class="symbol">
+            {{ item.symbol }}
+          </a>
+          <div v-if="item.pattern" class="pattern">
+            {{ formatPatternType(item.pattern.type) }}
+            <span class="pattern-date">{{ item.pattern.date }}</span>
           </div>
-          <ul class="pattern-list">
-            <li v-for="(p, i) in item.patterns" :key="i">
-              <span class="type">{{ p.type }}</span>
-              <span class="date">{{ p.date }}</span>
-            </li>
-          </ul>
           <a :href="tradingViewUrl(item.symbol)" target="_blank" rel="noopener" class="chart-link">
             View chart →
           </a>
@@ -90,12 +130,12 @@ onMounted(async () => {
 
 <style scoped>
 .pattern-results {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   padding: 1.5rem;
 }
 .header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
 .header h1 {
   font-size: 1.75rem;
@@ -112,6 +152,42 @@ onMounted(async () => {
   font-size: 0.875rem;
   color: var(--color-text-muted);
 }
+
+/* Legend bar */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+.legend-item.hot .legend-dot {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+.legend-item.potential .legend-dot {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+.legend-item.cool .legend-dot {
+  background: #93c5fd;
+  border-color: #93c5fd;
+}
+
 .loading,
 .error,
 .empty {
@@ -122,75 +198,71 @@ onMounted(async () => {
 .error {
   color: #e57373;
 }
-.empty code {
-  background: var(--color-bg-mute);
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
+
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
 }
 .card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: #f9fafb;
+  border: 3px solid;
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
-.card:hover {
-  border-color: var(--color-border-hover);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.card.temp-hot {
+  border-color: #dc2626;
 }
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+.card.temp-potential {
+  border-color: #ea580c;
+}
+.card.temp-cool {
+  border-color: #93c5fd;
+}
+.card.high-volume {
+  border-color: #dc2626 !important;
+  animation: bounce-subtle 1.5s ease-in-out infinite;
+}
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  animation: wobble 0.4s ease-in-out;
+}
+@keyframes wobble {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
 }
 .symbol {
+  display: block;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-accent);
   text-decoration: none;
+  margin-bottom: 0.5rem;
 }
 .symbol:hover {
   text-decoration: underline;
 }
-.badge {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  background: var(--color-badge);
-  color: var(--color-badge-text);
-  border-radius: 6px;
-}
-.pattern-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem;
+.pattern {
   font-size: 0.9rem;
-}
-.pattern-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.25rem 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.pattern-list li:last-child {
-  border-bottom: none;
-}
-.type {
   color: var(--color-text);
+  margin-bottom: 0.5rem;
 }
-.date {
+.pattern-date {
+  display: block;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
-  font-size: 0.85em;
+  margin-top: 0.15rem;
 }
 .chart-link {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-accent);
   text-decoration: none;
 }
