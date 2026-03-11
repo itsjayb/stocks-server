@@ -91,7 +91,7 @@ ${rules}`;
     if (patternOrStrategy && patternOrStrategy.kind === 'pattern') {
       task = `Write exactly ONE tweet that promotes this specific pattern: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook with a concrete stat when available (e.g. "known to have roughly 70% success rate when confirmed"). Do NOT include any stock tickers or cash tags – we do not want to imply specific stocks match this pattern. End with this exact URL: ${patternOrStrategy.url}. Do NOT paste news headlines. ${rules}`;
     } else {
-      task = `Write exactly ONE tweet that promotes learning a chart pattern (e.g. Head & Shoulders, Double Top, Cup and Handle). Add a concrete hook (e.g. "Head & Shoulders has roughly a 70% success rate when confirmed"). Do NOT include any stock tickers. End with: ${PROMO_URL}/patterns or ${DOMAIN}/patterns. ${rules}`;
+      task = `Write exactly ONE tweet that promotes learning a chart pattern (e.g. Head & Shoulders, Double Top, Cup and Handle). Add a concrete hook (e.g. "Head & Shoulders has roughly a 70% success rate when confirmed"). Do NOT include any stock tickers. End with: ${PROMO_URL}/tw/patterns or ${DOMAIN}/tw/patterns. ${rules}`;
     }
     return `${system}\n\n${task}\n\nOptional context from recent market news (do not quote verbatim):\n${newsString}`;
   }
@@ -102,7 +102,7 @@ ${rules}`;
   if (patternOrStrategy && patternOrStrategy.kind === 'strategy') {
     task = `Write exactly ONE tweet that promotes this specific strategy: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook (e.g. "one of the most popular trading strategies" or why it matters). You MAY include 1–3 relevant tickers or ETFs (e.g. $SPY $QQQ $XLF) that fit the strategy – strategies can apply to ETFs and sectors. ${symbolHint} End with this exact URL: ${patternOrStrategy.url}. Do NOT paste news headlines. ${rules}`;
   } else {
-    task = `Write exactly ONE tweet that promotes learning a trading strategy (e.g. Moving Average Crossover, Support and Resistance, Breakout Trading). Add a hook like "one of the most popular strategies". You MAY include 1–3 relevant ETFs or tickers. ${symbolHint} End with: ${PROMO_URL}/strategies or ${DOMAIN}/strategies. ${rules}`;
+    task = `Write exactly ONE tweet that promotes learning a trading strategy (e.g. Moving Average Crossover, Support and Resistance, Breakout Trading). Add a hook like "one of the most popular strategies". You MAY include 1–3 relevant ETFs or tickers. ${symbolHint} End with: ${PROMO_URL}/tw/strategies or ${DOMAIN}/tw/strategies. ${rules}`;
   }
   return `${system}\n\n${task}\n\nOptional context from recent market news (do not quote verbatim):\n${newsString}`;
 }
