@@ -50,11 +50,11 @@ app.get('/api/pattern-results', async (_req, res) => {
 });
 
 const MOCK_CARDS = [
-  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' as const },
-  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' as const },
-  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' as const },
-  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' as const },
-  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' as const },
+  { symbol: 'AAPL', pattern: { type: 'head_shoulders', date: '2025-03-08' }, patternTypes: ['head_shoulders'], patternCount: 1, volume_ratio: 2.8, high_volume: true, temperature: 'hot' as const },
+  { symbol: 'TSLA', pattern: { type: 'golden_cross', date: '2025-03-07' }, patternTypes: ['golden_cross', 'breakout'], patternCount: 2, volume_ratio: 1.7, high_volume: false, temperature: 'potential' as const },
+  { symbol: 'NVDA', pattern: { type: 'breakout', date: '2025-03-06' }, patternTypes: ['breakout'], patternCount: 1, volume_ratio: 0.9, high_volume: false, temperature: 'cool' as const },
+  { symbol: 'META', pattern: { type: 'bullish_engulfing', date: '2025-03-05' }, patternTypes: ['bullish_engulfing'], patternCount: 1, volume_ratio: 3.2, high_volume: true, temperature: 'hot' as const },
+  { symbol: 'AMD', pattern: { type: 'double_bottom', date: '2025-03-04' }, patternTypes: ['double_bottom'], patternCount: 1, volume_ratio: 1.2, high_volume: false, temperature: 'cool' as const },
 ];
 
 // Pattern cards: pattern results merged with volume (smart_movers + momentum_scans)
@@ -103,6 +103,7 @@ app.get('/api/pattern-cards', async (req, res) => {
         return {
           symbol: item.symbol,
           pattern: primaryPattern ? { type: primaryPattern.type, date: primaryPattern.date } : null,
+          patternTypes: [...new Set(item.patterns.map((p) => p.type))],
           patternCount: item.patterns.length,
           volume_ratio: vol.volume_ratio,
           high_volume: vol.unusual_volume || vol.volume_ratio >= 2,
