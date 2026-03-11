@@ -16,7 +16,7 @@ import { postTweet } from '../services/x-post.js';
 import { getFallbackTweet } from '../services/templates.js';
 import { getTrendingSymbols } from '../services/trending.js';
 import { getSmartMovers } from '../services/smart-movers.js';
-import { pickPatternOrStrategy } from '../services/pattern-strategy-pick.js';
+import { pickPattern, pickStrategy } from '../services/pattern-strategy-pick.js';
 import { readFile, writeFile } from 'fs/promises';
 import { STOCKS } from '../stocks.js';
 import type { PatternScanConfig } from '../types.js';
@@ -79,10 +79,12 @@ async function run(): Promise<void> {
     }
     if (candidates.length === 0) candidates = ['SPY', 'AAPL', 'QQQ'];
 
-    // For website tweets, pick one pattern or strategy so we promote a specific lesson + /tw/ URL.
-    let patternOrStrategy: Awaited<ReturnType<typeof pickPatternOrStrategy>> = null;
-    if (tweetType === 'website') {
-      patternOrStrategy = await pickPatternOrStrategy();
+    // For pattern/strategy tweets, pick one so we promote a specific lesson + /tw/ URL.
+    let patternOrStrategy: Awaited<ReturnType<typeof pickPattern>> | Awaited<ReturnType<typeof pickStrategy>> = null;
+    if (tweetType === 'pattern') {
+      patternOrStrategy = await pickPattern();
+    } else if (tweetType === 'strategy') {
+      patternOrStrategy = await pickStrategy();
     }
 
     let tweetText = '';
@@ -127,38 +129,43 @@ async function run(): Promise<void> {
       console.log('[tweet-job] No news items; using fallback template.');
     }
 
-    if (tweetType === 'news' || tweetType === 'stocks') {
-      try {
-        let top: string[] = [];
-        // For "stocks" tweets use smart movers when available so we get names that are actually
-        // moving today (e.g. oil stocks when oil/Iran is in the news). Fall back to trending by volume.
-        if (tweetType === 'stocks') {
+    // For news tweets: LLM may include tickers in tweet. If not, append smart movers as fallback
+    // (e.g. oil stocks when Iran/energy in news). Pattern tweets: never append tickers.
+    // Strategy tweets: LLM may include tickers; if not, optionally append ETFs.
+    if (tweetType === 'news') {
+      const hasTicker = /\$[A-Z]{1,5}\b/.test(tweetText);
+      if (!hasTicker) {
+        try {
+          let top: string[] = [];
           try {
             const { movers } = await getSmartMovers({ top: 5 });
             const gainers = movers.filter((m) => m.direction === 'gainer').slice(0, 3);
-            if (gainers.length > 0) {
-              top = gainers.map((m) => m.symbol);
-            }
+            if (gainers.length > 0) top = gainers.map((m) => m.symbol);
           } catch {
-            // ignore, use trending below
+            // ignore
           }
+          if (top.length === 0) top = await getTrendingSymbols(candidates, 3);
+          if (top.length === 0) top = candidates.length ? candidates.slice(0, 3) : ['SPY', 'AAPL', 'QQQ'];
+          if (top.length) {
+            const offset = new Date().getDate() % top.length;
+            const rotated = top.slice(offset).concat(top.slice(0, offset));
+            const cashTags = rotated.slice(0, 3).map((s) => `$${s}`).join(' ');
+            tweetText = `${tweetText} ${cashTags}`;
+          }
+        } catch (err) {
+          console.warn('[tweet-job] Could not fetch fallback symbols:', (err as Error).message);
         }
-        if (top.length === 0) {
-          top = await getTrendingSymbols(candidates, 3);
-        }
-        if (!top || top.length === 0) {
-          top = candidates.length ? candidates.slice(0, 3) : ['SPY', 'AAPL', 'QQQ'];
-        }
-        if (top && top.length) {
-          const offset = new Date().getDate() % top.length;
-          const rotated = top.slice(offset).concat(top.slice(0, offset));
-          const cashTags = rotated.map((s) => `$${s}`).join(' ');
-          tweetText = `${tweetText} ${cashTags}`;
-        }
-      } catch (err) {
-        console.warn('[tweet-job] Could not fetch trending symbols:', (err as Error).message);
+      }
+    } else if (tweetType === 'strategy') {
+      // Strategy tweets can include tickers; LLM may add them. Fallback: append common ETFs if none.
+      const hasTicker = /\$[A-Z]{1,5}\b/.test(tweetText);
+      if (!hasTicker) {
+        const etfs = ['SPY', 'QQQ', 'XLF'];
+        const cashTags = etfs.map((s) => `$${s}`).join(' ');
+        tweetText = `${tweetText} ${cashTags}`;
       }
     }
+    // pattern tweets: never append tickers
 
     if (!tweetText) {
       console.warn('[tweet-job] No tweet text; skipping.');

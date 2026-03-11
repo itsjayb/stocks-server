@@ -6,8 +6,8 @@ The tweet job uses an LLM (Ollama) plus current market news to generate tweets. 
 
 ## Goal of tweet improvements (feature/tweet-improvements-pattern-strategy)
 
-- **Varied cash tags** — Avoid always appending the same tickers (e.g. SPY, QQQ). Use a real candidate list (master list or explicit symbols) and, for **stocks** tweets, prefer **Smart Movers** (actual top gainers of the day) so topical names (e.g. oil when Iran/oil is in the news) can appear.
-- **Pattern/strategy promo** — **Website** tweets promote one specific pattern or strategy with a concrete hook and `/tw/` URL when config supplies it.
+- **Varied cash tags** — News tweets: LLM suggests affected tickers (limit 3); fallback to Smart Movers. Strategy tweets: LLM may include ETFs; fallback to SPY/QQQ/XLF. Pattern tweets: no tickers.
+- **Pattern/strategy promo** — **Pattern** tweets promote one pattern (no tickers). **Strategy** tweets promote one strategy (can include tickers/ETFs). Both use `/tw/` URL.
 - **Testability** — A script (`npm run test:trending`) shows exactly which symbols would be used as “popular/trending” and as movers, so we can verify behavior without posting.
 
 ---
@@ -16,7 +16,8 @@ The tweet job uses an LLM (Ollama) plus current market news to generate tweets. 
 
 - **Educate and build trust** — not every tweet should be an ad.
 - **No run-on sentences** — short, punchy copy. No quotation marks (looks real).
-- **Mix content** — news, website promo, and stock/cash-tag tweets so the feed feels varied and engaging.
+- **Separate news from promo** — news tweets are news-only; pattern/strategy tweets promote the site.
+- **Mix content** — news, pattern promo, and strategy promo so the feed feels varied and engaging.
 
 ---
 
@@ -72,11 +73,11 @@ Each run picks one type via **time-based rotation** (`pickTweetType()` in `aggre
 
 | File | Role |
 |------|------|
-| `config/patterns-and-strategies.json` | Reference: pattern/strategy id, name, slug, one-line description. Used to pick one item per website tweet and build `/tw/` URLs. |
-| `src/services/pattern-strategy-pick.ts` | Loads config, picks one pattern or strategy (time-based rotation), returns name, description, url (`/tw/pattern/:slug` or `/tw/strategy/:slug`). |
-| `src/services/aggregate-news.ts` | `buildPromptForType()`, `pickTweetType()`, `buildPrompt()` (defaults to news). Website prompt accepts optional `patternOrStrategy` for specific lesson + URL. |
-| `src/services/templates.ts` | Fallback templates per type; website fallback can use `patternOrStrategy` for a one-liner with name, description, url. |
-| `src/jobs/tweet-job.ts` | Fetches news, picks type, for website picks pattern/strategy, builds prompt, calls Ollama, loads candidates from config (useMasterList or symbols), appends cash tags (trending or smart movers for stocks), posts to X. |
+| `config/patterns-and-strategies.json` | Reference: pattern/strategy id, name, slug, one-line description. Used to pick one item per pattern/strategy tweet and build `/tw/` URLs. |
+| `src/services/pattern-strategy-pick.ts` | `pickPattern()` and `pickStrategy()` for pattern/strategy tweets. Returns name, description, url (`/tw/pattern/:slug` or `/tw/strategy/:slug`). |
+| `src/services/aggregate-news.ts` | `buildPromptForType()`, `pickTweetType()`, `buildPrompt()` (defaults to news). Pattern/strategy prompts accept optional `patternOrStrategy`. |
+| `src/services/templates.ts` | Fallback templates per type; pattern/strategy fallbacks use `patternOrStrategy` for name, description, url. |
+| `src/jobs/tweet-job.ts` | Fetches news, picks type, for pattern/strategy picks pattern or strategy, builds prompt, calls Ollama, appends tickers only when appropriate (news: smart movers fallback; strategy: ETFs fallback; pattern: never). |
 
 ---
 

@@ -10,7 +10,7 @@ const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.onl
 const DOMAIN = PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 const MAX_ITEMS = 10;
 
-export type TweetType = 'news' | 'website' | 'stocks';
+export type TweetType = 'news' | 'pattern' | 'strategy';
 
 const SITE_DESCRIPTION = `The site is ${DOMAIN}. It teaches chart patterns (support/resistance, trend patterns) at /patterns, and trading strategies (entries, exits, risk) at /strategies. Content is organized as lessons so users can follow a path and track progress.`;
 
@@ -50,15 +50,15 @@ export function buildNewsString(items: NewsItem[]): string {
 /** Options for building a type-specific prompt. */
 export interface BuildPromptOptions {
   candidateSymbols?: string[];
-  /** When type is 'website', use this specific pattern/strategy and its URL (/tw/ referral). */
+  /** When type is 'pattern' or 'strategy', use this specific item and its URL (/tw/ referral). */
   patternOrStrategy?: { name: string; description: string; url: string; kind: 'pattern' | 'strategy' };
 }
 
 /**
  * Build prompt for the given tweet type. Varying the type produces different content:
- * - news: headline-focused, no website CTA; may suggest sectors/tickers (e.g. oil for Iran).
- * - website: one pattern/strategy hook with a concrete stat or detail, then CTA; no long news.
- * - stocks: reason to watch 2–4 tickers with cash tags; no website.
+ * - news: headline-focused, no website CTA; LLM identifies affected stocks (limit 3), optional tactical context.
+ * - pattern: one pattern hook with success rate, CTA; NO tickers (avoid implying tickers match the pattern).
+ * - strategy: one strategy hook, CAN include tickers (ETFs, sector ETFs).
  */
 export function buildPromptForType(
   newsString: string,
@@ -68,33 +68,43 @@ export function buildPromptForType(
   const { candidateSymbols = [], patternOrStrategy } = options;
   const symbolHint =
     candidateSymbols.length > 0
-      ? `Suggested tickers (use 2–4): ${candidateSymbols.slice(0, 8).map((s) => `$${s}`).join(', ')}. You may also use sector-relevant tickers (e.g. $XOM $USO $OIL for oil/geopolitics, $SPY $QQQ for markets).`
-      : 'Use 2–4 cash tags like $SPY $AAPL $QQQ $XOM $USO where relevant.';
+      ? `Suggested tickers: ${candidateSymbols.slice(0, 12).map((s) => `$${s}`).join(', ')}. You may also use sector ETFs (e.g. $XLE $USO $OIL for energy, $XLF for financials).`
+      : 'Use sector ETFs or relevant tickers like $SPY $QQQ $XLE $USO where relevant.';
 
   const rules =
     'Write like a real person. Do not use quotation marks. Short, punchy sentences. Under 280 characters total. Output only the tweet text. No explanation, no quotes around the tweet.';
 
   if (type === 'news') {
     const system = `You write short, engaging tweets for a stock market learning brand. ${SITE_DESCRIPTION} Goal: educate and build trust.`;
-    const task = `Using the market news below, write exactly ONE tweet. This tweet is NEWS ONLY: lead with the most important or interesting headline. Do not add a website link or call-to-action. If the news suggests a sector or theme (e.g. Iran, conflict, energy), you may suggest watching related tickers and include 1–3 cash tags (e.g. $XOM $USO $OIL). Otherwise keep it to the headline and a short take. ${rules}`;
+    const task = `Using the market news below, write exactly ONE tweet. This tweet is NEWS ONLY: lead with the most important or interesting headline. Do NOT add a website link or call-to-action.
+
+Identify which stocks could be affected by this news. Include 1–3 cash tags (e.g. $XOM $USO $OIL) for the most relevant tickers. Limit to 3 tickers max.
+When the news suggests a sector or theme (e.g. Iran, conflict, energy, oil), you may add a short tactical note like "watch oil stocks for potential short-term swing trades" or similar. Keep it concise.
+If no specific stocks are clearly affected, keep it to the headline and a short take without tickers.
+${rules}`;
     return `${system}\n\n${task}\n\nMarket news:\n${newsString}`;
   }
 
-  if (type === 'website') {
-    const system = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION} Goal: educate, build trust, and occasionally promote the site.`;
+  if (type === 'pattern') {
+    const system = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION} Goal: educate and promote pattern learning.`;
     let task: string;
-    if (patternOrStrategy) {
-      task = `Write exactly ONE tweet that promotes this specific ${patternOrStrategy.kind}: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook (e.g. why it matters or a stat like "known to have roughly 70% success rate when confirmed" where relevant). End with this exact URL: ${patternOrStrategy.url}. Do NOT paste a long news headline. ${rules}`;
+    if (patternOrStrategy && patternOrStrategy.kind === 'pattern') {
+      task = `Write exactly ONE tweet that promotes this specific pattern: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook with a concrete stat when available (e.g. "known to have roughly 70% success rate when confirmed"). Do NOT include any stock tickers or cash tags – we do not want to imply specific stocks match this pattern. End with this exact URL: ${patternOrStrategy.url}. Do NOT paste news headlines. ${rules}`;
     } else {
-      task = `Write exactly ONE tweet that promotes our educational site. Do NOT paste a long news headline. Focus on ONE specific pattern or strategy (e.g. Head & Shoulders, double top/bottom, support and resistance, moving average crossovers). Add a concrete hook when possible (e.g. "Head & Shoulders is known to have roughly a 70% success rate when confirmed" or "learn to spot the pattern pros use"). End with our URL: ${PROMO_URL} or ${DOMAIN}. ${rules}`;
+      task = `Write exactly ONE tweet that promotes learning a chart pattern (e.g. Head & Shoulders, Double Top, Cup and Handle). Add a concrete hook (e.g. "Head & Shoulders has roughly a 70% success rate when confirmed"). Do NOT include any stock tickers. End with: ${PROMO_URL}/patterns or ${DOMAIN}/patterns. ${rules}`;
     }
     return `${system}\n\n${task}\n\nOptional context from recent market news (do not quote verbatim):\n${newsString}`;
   }
 
-  // type === 'stocks'
-  const system = `You write short, engaging tweets for a stock market learning brand. ${SITE_DESCRIPTION} Goal: educate, build trust, and drive engagement.`;
-  const task = `Using the market news below, write exactly ONE tweet that gives a reason to watch certain stocks. Include 2–4 cash tags ($TICKER). ${symbolHint} Do not add a website link. Be punchy: why these stocks now? Tie to news, momentum, or a theme. ${rules}`;
-  return `${system}\n\n${task}\n\nMarket news:\n${newsString}`;
+  // type === 'strategy'
+  const system = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION} Goal: educate and promote strategy learning.`;
+  let task: string;
+  if (patternOrStrategy && patternOrStrategy.kind === 'strategy') {
+    task = `Write exactly ONE tweet that promotes this specific strategy: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook (e.g. "one of the most popular trading strategies" or why it matters). You MAY include 1–3 relevant tickers or ETFs (e.g. $SPY $QQQ $XLF) that fit the strategy – strategies can apply to ETFs and sectors. ${symbolHint} End with this exact URL: ${patternOrStrategy.url}. Do NOT paste news headlines. ${rules}`;
+  } else {
+    task = `Write exactly ONE tweet that promotes learning a trading strategy (e.g. Moving Average Crossover, Support and Resistance, Breakout Trading). Add a hook like "one of the most popular strategies". You MAY include 1–3 relevant ETFs or tickers. ${symbolHint} End with: ${PROMO_URL}/strategies or ${DOMAIN}/strategies. ${rules}`;
+  }
+  return `${system}\n\n${task}\n\nOptional context from recent market news (do not quote verbatim):\n${newsString}`;
 }
 
 /**
@@ -104,10 +114,10 @@ export function buildPrompt(newsString: string): string {
   return buildPromptForType(newsString, 'news');
 }
 
-const TWEET_TYPES: TweetType[] = ['news', 'website', 'stocks'];
+const TWEET_TYPES: TweetType[] = ['news', 'pattern', 'strategy'];
 
 /**
- * Pick a tweet type for this run so we rotate content: not every tweet promotes the website.
+ * Pick a tweet type for this run so we rotate content: news, pattern promo, strategy promo.
  * Uses time-based rotation (hour + day) so we switch it up across runs.
  */
 export function pickTweetType(): TweetType {

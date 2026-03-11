@@ -72,3 +72,51 @@ export async function pickPatternOrStrategy(): Promise<PatternOrStrategyItem | n
     return null;
   }
 }
+
+/**
+ * Pick one pattern only (for pattern promo tweets). No tickers in these tweets.
+ */
+export async function pickPattern(): Promise<PatternOrStrategyItem | null> {
+  try {
+    const config = await loadConfig();
+    const patterns = config.patterns ?? [];
+    if (patterns.length === 0) return null;
+
+    const d = new Date();
+    const index = (d.getDate() * 24 + d.getHours()) % patterns.length;
+    const row = patterns[index];
+    return {
+      name: row.name,
+      description: row.description,
+      url: `${BASE}/tw/pattern/${row.slug}`,
+      kind: 'pattern',
+    };
+  } catch (err) {
+    console.warn('[pattern-strategy-pick] Could not load config:', (err as Error).message);
+    return null;
+  }
+}
+
+/**
+ * Pick one strategy only (for strategy promo tweets). Strategy tweets CAN include tickers/ETFs.
+ */
+export async function pickStrategy(): Promise<PatternOrStrategyItem | null> {
+  try {
+    const config = await loadConfig();
+    const strategies = config.strategies ?? [];
+    if (strategies.length === 0) return null;
+
+    const d = new Date();
+    const index = (d.getDate() * 24 + d.getHours()) % strategies.length;
+    const row = strategies[index];
+    return {
+      name: row.name,
+      description: row.description,
+      url: `${BASE}/tw/strategy/${row.slug}`,
+      kind: 'strategy',
+    };
+  } catch (err) {
+    console.warn('[pattern-strategy-pick] Could not load config:', (err as Error).message);
+    return null;
+  }
+}
