@@ -31,6 +31,38 @@ export interface PostTweetResult {
   error?: string;
 }
 
+export interface PollOptions {
+  options: string[];
+  duration_minutes: number;
+}
+
+export interface PostTweetOptions {
+  text: string;
+  media_ids?: string[];
+  poll?: PollOptions;
+  reply_to?: string;
+}
+
+export interface TweetEngagement {
+  tweet_id: string;
+  text: string;
+  tweet_type: string;
+  created_at: string;
+  impressions?: number;
+  likes?: number;
+  retweets?: number;
+  replies?: number;
+  quotes?: number;
+  had_poll: boolean;
+  had_media: boolean;
+}
+
+export interface TweetTypeWeights {
+  news: number;
+  pattern: number;
+  strategy: number;
+}
+
 export interface PatternScanConfig {
   useMasterList?: boolean;
   limit?: number;
