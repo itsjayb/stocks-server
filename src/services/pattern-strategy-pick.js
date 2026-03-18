@@ -1,5 +1,5 @@
 /**
- * Load pattern/strategy reference and pick one for a website tweet.
+ * Load pattern/strategy reference and pick one for a promo tweet.
  * Uses config/patterns-and-strategies.json; URLs use /tw/ for Twitter referral.
  */
 
@@ -42,6 +42,54 @@ export async function pickPatternOrStrategy() {
       };
     }
     const row = strategies[index - patterns.length];
+    return {
+      name: row.name,
+      description: row.description,
+      url: `${BASE}/tw/strategy/${row.slug}`,
+      kind: 'strategy',
+    };
+  } catch (err) {
+    console.warn('[pattern-strategy-pick] Could not load config:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Pick one pattern only (for pattern promo tweets). No tickers in these tweets.
+ */
+export async function pickPattern() {
+  try {
+    const config = await loadConfig();
+    const patterns = config.patterns ?? [];
+    if (patterns.length === 0) return null;
+
+    const d = new Date();
+    const index = (d.getDate() * 24 + d.getHours()) % patterns.length;
+    const row = patterns[index];
+    return {
+      name: row.name,
+      description: row.description,
+      url: `${BASE}/tw/pattern/${row.slug}`,
+      kind: 'pattern',
+    };
+  } catch (err) {
+    console.warn('[pattern-strategy-pick] Could not load config:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Pick one strategy only (for strategy promo tweets). Strategy tweets can include tickers/ETFs.
+ */
+export async function pickStrategy() {
+  try {
+    const config = await loadConfig();
+    const strategies = config.strategies ?? [];
+    if (strategies.length === 0) return null;
+
+    const d = new Date();
+    const index = (d.getDate() * 24 + d.getHours()) % strategies.length;
+    const row = strategies[index];
     return {
       name: row.name,
       description: row.description,

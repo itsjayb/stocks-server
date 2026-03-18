@@ -10,7 +10,7 @@ import 'dotenv/config';
 import { fetchAlpacaNews } from '../services/news/alpaca.js';
 import { fetchFinnhubNews } from '../services/news/finnhub.js';
 import { fetchAlphaVantageNews } from '../services/news/alphavantage.js';
-import { aggregateNews, buildNewsString, buildPromptForType, pickTweetType } from '../services/aggregate-news.js';
+import { aggregateNews, buildNewsString, buildPromptForType, getNextTweetType } from '../services/aggregate-news.js';
 import { generateTweet } from '../services/ollama.js';
 import { postTweet } from '../services/x-post.js';
 import { getFallbackTweet } from '../services/templates.js';
@@ -23,6 +23,8 @@ import type { PatternScanConfig } from '../types.js';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.env.DRY_RUN === '1';
 const SKIP_POST = process.env.SKIP_POST === 'true' || process.env.SKIP_POST === '1';
+const LAST_TWEET_PATH = new URL('../../config/last_tweet.txt', import.meta.url);
+const LAST_TWEET_TYPE_PATH = new URL('../../config/last_tweet_type.txt', import.meta.url);
 
 function isBeforeStartDate(): boolean {
   const start = process.env.POST_START_DATE;
@@ -33,6 +35,26 @@ function isBeforeStartDate(): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return today < startDate;
+}
+
+async function pickTweetTypeForRun(): Promise<'news' | 'pattern' | 'strategy'> {
+  let previousType: string | null = null;
+  try {
+    const raw = await readFile(LAST_TWEET_TYPE_PATH, 'utf8');
+    previousType = raw.trim() || null;
+  } catch {
+    // ignore missing/invalid state file
+  }
+
+  const nextType = getNextTweetType(previousType);
+  try {
+    await writeFile(LAST_TWEET_TYPE_PATH, nextType, 'utf8');
+  } catch (err) {
+    console.warn('[tweet-job] Could not persist last tweet type:', (err as Error).message);
+  }
+
+  console.log('[tweet-job] Tweet type selected:', { previousType, nextType });
+  return nextType;
 }
 
 async function run(): Promise<void> {
@@ -53,8 +75,8 @@ async function run(): Promise<void> {
 
     const items = aggregateNews([alpaca, finnhub, alphavantage]);
 
-    // Rotate tweet type so we don't advertise the website on every post: news, website, stocks.
-    const tweetType = pickTweetType();
+    // Rotate tweet type in round-robin order across runs.
+    const tweetType = await pickTweetTypeForRun();
 
     // Load candidate symbols once for prompt and optional cash-tag append.
     // Supports useMasterList (STOCKS from src/stocks.ts) or explicit "symbols" array.
@@ -173,7 +195,6 @@ async function run(): Promise<void> {
     }
 
     // Prevent posting the exact same tweet back-to-back by storing last posted tweet.
-    const LAST_TWEET_PATH = new URL('../../config/last_tweet.txt', import.meta.url);
     try {
       const prev = await readFile(LAST_TWEET_PATH, 'utf8').catch(() => '');
       if (prev && prev.trim() === tweetText.trim()) {

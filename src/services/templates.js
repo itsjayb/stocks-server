@@ -51,10 +51,10 @@ const MAX_DESCRIPTION_IN_FALLBACK = 80;
 /**
  * Get a random fallback tweet.
  * @param {{ headline: string }[]} [items]
- * @param {'news'|'pattern'|'strategy'} [type='pattern']
+ * @param {'news'|'pattern'|'strategy'} [type='news']
  * @param {{ name: string, description: string, url: string }} [patternOrStrategy] - When type is pattern/strategy, use this for specific item + URL
  */
-export function getFallbackTweet(items = [], type = 'pattern', patternOrStrategy = null) {
+export function getFallbackTweet(items = [], type = 'news', patternOrStrategy = null) {
   const headline = items.length > 0 && items[0].headline
     ? items[0].headline.slice(0, MAX_HEADLINE_IN_TWEET).trim()
     : '';

@@ -59,7 +59,7 @@ export interface PatternOrStrategyForFallback {
 
 export function getFallbackTweet(
   items: NewsItem[] = [],
-  type: TweetType = 'pattern',
+  type: TweetType = 'news',
   patternOrStrategy?: PatternOrStrategyForFallback
 ): string {
   const headline = items.length > 0 && items[0].headline
