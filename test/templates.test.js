@@ -44,3 +44,15 @@ test('getFallbackTweet with type news has no website URL', () => {
     Math.random = origRand;
   }
 });
+
+test('getFallbackTweet default type does not force website promo', () => {
+  const origRand = Math.random;
+  try {
+    Math.random = () => 0;
+    const tweet = getFallbackTweet([]);
+    assert.doesNotMatch(tweet, /learnstockmarket\.online/);
+    assert.ok(tweet.length <= 280);
+  } finally {
+    Math.random = origRand;
+  }
+});

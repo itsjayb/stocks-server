@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { aggregateNews, buildNewsString, buildPrompt } from '../src/services/aggregate-news.js';
+import { aggregateNews, buildNewsString, buildPrompt, buildPromptForType, getNextTweetType } from '../src/services/aggregate-news.js';
 
 test('aggregateNews merges, deduplicates, sorts and limits items', () => {
   const a = [
@@ -37,4 +37,17 @@ test('buildPrompt includes site description and news', () => {
   assert.match(prompt, /H/);
   // PROMO URL default should be present
   assert.match(prompt, /learnstockmarket.online/);
+});
+
+test('buildPromptForType pattern prompt avoids tickers and includes pattern path', () => {
+  const news = '- [Src] H';
+  const prompt = buildPromptForType(news, 'pattern');
+  assert.match(prompt, /Do NOT include any stock tickers/i);
+  assert.match(prompt, /\/tw\/patterns/);
+});
+
+test('getNextTweetType cycles through tweet types', () => {
+  assert.strictEqual(getNextTweetType('news'), 'pattern');
+  assert.strictEqual(getNextTweetType('pattern'), 'strategy');
+  assert.strictEqual(getNextTweetType('strategy'), 'news');
 });
