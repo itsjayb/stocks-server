@@ -17,6 +17,7 @@ import { getFallbackTweet } from '../services/templates.js';
 import { getTrendingSymbols } from '../services/trending.js';
 import { getSmartMovers } from '../services/smart-movers.js';
 import { pickPattern, pickStrategy } from '../services/pattern-strategy-pick.js';
+import { enforcePromoTrackingPath } from '../services/url-tracking.js';
 import { readFile, writeFile } from 'fs/promises';
 import { STOCKS } from '../stocks.js';
 import type { PatternScanConfig } from '../types.js';
@@ -188,6 +189,12 @@ async function run(): Promise<void> {
       }
     }
     // pattern tweets: never append tickers
+
+    const trackedTweetText = enforcePromoTrackingPath(tweetText);
+    if (trackedTweetText !== tweetText) {
+      console.log('[tweet-job] Normalized promo URL(s) to /tw tracking path.');
+      tweetText = trackedTweetText;
+    }
 
     if (!tweetText) {
       console.warn('[tweet-job] No tweet text; skipping.');

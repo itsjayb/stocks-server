@@ -15,6 +15,7 @@ import { generateTweet } from '../services/ollama.js';
 import { postTweet } from '../services/x-post.js';
 import { getFallbackTweet } from '../services/templates.js';
 import { pickPattern, pickStrategy } from '../services/pattern-strategy-pick.js';
+import { enforcePromoTrackingPath } from '../services/url-tracking.js';
 import { readFile, writeFile } from 'fs/promises';
 
 const DRY_RUN = process.env.DRY_RUN === 'true' || process.env.DRY_RUN === '1';
@@ -115,6 +116,12 @@ async function run() {
     } else {
       tweetText = getFallbackTweet([], tweetType, patternOrStrategy ?? undefined);
       console.log('[tweet-job] No news items; using fallback template.');
+    }
+
+    const trackedTweetText = enforcePromoTrackingPath(tweetText);
+    if (trackedTweetText !== tweetText) {
+      console.log('[tweet-job] Normalized promo URL(s) to /tw tracking path.');
+      tweetText = trackedTweetText;
     }
 
     if (!tweetText) {
