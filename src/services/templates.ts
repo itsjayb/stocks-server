@@ -8,7 +8,8 @@ import type { NewsItem } from '../types.js';
 import type { TweetType } from './aggregate-news.js';
 
 const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online';
-const domain = PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
+/** Full origin with https — all promo links include /tw/ for Twitter referral tracking. */
+const BASE = PROMO_URL.replace(/\/$/, '');
 
 /** News-only: headline + short take, no website. Job may append tickers. */
 const NEWS_WITH_HEADLINE = [
@@ -30,10 +31,10 @@ const PATTERN_WITH_ITEM = [
 ];
 
 const PATTERN_STATIC = [
-  `Head & Shoulders is known to have roughly a 70% success rate when confirmed. Learn it step by step: ${domain}/tw/patterns`,
-  `New to trading? Learn support, resistance, and trend patterns step by step. ${domain}/tw/patterns`,
-  `Double Top and Double Bottom – reversal patterns pros use. Learn them: ${domain}/tw/patterns`,
-  `Support, resistance, trend patterns – learn them with structured lessons. ${domain}/tw/patterns`,
+  `Head & Shoulders is known to have roughly a 70% success rate when confirmed. Learn it step by step: ${BASE}/tw/patterns`,
+  `New to trading? Learn support, resistance, and trend patterns step by step. ${BASE}/tw/patterns`,
+  `Double Top and Double Bottom – reversal patterns pros use. Learn them: ${BASE}/tw/patterns`,
+  `Support, resistance, trend patterns – learn them with structured lessons. ${BASE}/tw/patterns`,
 ];
 
 /** Strategy promo: can include tickers (ETFs). Focus on strategy + URL. */
@@ -43,9 +44,9 @@ const STRATEGY_WITH_ITEM = [
 ];
 
 const STRATEGY_STATIC = [
-  `Plan your entries and exits like a pro. Trading strategies explained: ${domain}/tw/strategies`,
-  `Moving Average Crossover – simple and effective. Learn it: ${domain}/tw/strategies`,
-  `Entries, exits, and risk – walk through real trading strategies. ${domain}/tw/strategies`,
+  `Plan your entries and exits like a pro. Trading strategies explained: ${BASE}/tw/strategies`,
+  `Moving Average Crossover – simple and effective. Learn it: ${BASE}/tw/strategies`,
+  `Entries, exits, and risk – walk through real trading strategies. ${BASE}/tw/strategies`,
 ];
 
 const MAX_HEADLINE_IN_TWEET = 120;

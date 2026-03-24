@@ -17,6 +17,7 @@ import { getFallbackTweet } from '../services/templates.js';
 import { getTrendingSymbols } from '../services/trending.js';
 import { getSmartMovers } from '../services/smart-movers.js';
 import { pickPattern, pickStrategy } from '../services/pattern-strategy-pick.js';
+import { ensureTwReferralInTweet, getPromoBaseUrl } from '../services/tweet-promo-url.js';
 import { readFile, writeFile } from 'fs/promises';
 import { STOCKS } from '../stocks.js';
 import type { PatternScanConfig } from '../types.js';
@@ -53,7 +54,7 @@ async function run(): Promise<void> {
 
     const items = aggregateNews([alpaca, finnhub, alphavantage]);
 
-    // Rotate tweet type so we don't advertise the website on every post: news, website, stocks.
+    // Rotate tweet type: news, pattern promo, strategy promo (promo links use /tw/ for tracking).
     const tweetType = pickTweetType();
 
     // Load candidate symbols once for prompt and optional cash-tag append.
@@ -166,6 +167,15 @@ async function run(): Promise<void> {
       }
     }
     // pattern tweets: never append tickers
+
+    if (tweetType === 'pattern' || tweetType === 'strategy') {
+      tweetText = ensureTwReferralInTweet(
+        tweetText,
+        tweetType,
+        patternOrStrategy,
+        getPromoBaseUrl()
+      );
+    }
 
     if (!tweetText) {
       console.warn('[tweet-job] No tweet text; skipping.');

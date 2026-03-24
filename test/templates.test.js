@@ -25,8 +25,7 @@ test('getFallbackTweet without items returns a static template', () => {
   try {
     Math.random = () => 0; // deterministic
     const tweet = getFallbackTweet([], 'pattern');
-    // pattern type: should contain domain or patterns path
-    assert.match(tweet, /learnstockmarket.online/);
+    assert.match(tweet, /learnstockmarket\.online\/tw\//);
     assert.ok(tweet.length <= 280);
   } finally {
     Math.random = origRand;

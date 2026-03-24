@@ -1,7 +1,7 @@
 /**
  * Aggregate news from multiple sources, deduplicate, trim, and build the LLM prompt.
  * Includes canonical site description for learnstockmarket.online so tweets advertise correctly.
- * Supports three tweet types: news (no CTA), website (pattern/strategy promo), stocks (cash-tag focus).
+ * Supports three tweet types: news (no CTA), pattern promo, strategy promo (all promo links use /tw/ for referral tracking).
  */
 
 import type { NewsItem } from '../types.js';
@@ -114,14 +114,19 @@ export function buildPrompt(newsString: string): string {
   return buildPromptForType(newsString, 'news');
 }
 
-const TWEET_TYPES: TweetType[] = ['news', 'pattern', 'strategy'];
+export const TWEET_TYPES: readonly TweetType[] = ['news', 'pattern', 'strategy'];
+
+export function isValidTweetType(t: string): t is TweetType {
+  return (TWEET_TYPES as readonly string[]).includes(t);
+}
 
 /**
  * Pick a tweet type for this run so we rotate content: news, pattern promo, strategy promo.
  * Uses time-based rotation (hour + day) so we switch it up across runs.
+ * @param now — Optional clock for tests (defaults to current time).
  */
-export function pickTweetType(): TweetType {
-  const d = new Date();
+export function pickTweetType(now: Date = new Date()): TweetType {
+  const d = now;
   const index = (d.getDate() * 24 + d.getHours()) % TWEET_TYPES.length;
   return TWEET_TYPES[index];
 }

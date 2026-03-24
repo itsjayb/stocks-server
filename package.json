@@ -17,7 +17,7 @@
     "test:trending": "tsx scripts/test-trending-symbols.ts",
     "dashboard:build": "cd dashboard && npm run build",
     "dashboard:serve": "tsx src/dashboard-server.ts",
-    "test": "node --import tsx --test tests/pattern-scan.test.ts",
+    "test": "node --import tsx --test tests/pattern-scan.test.ts tests/tweet-type.test.ts tests/tweet-promo-url.test.ts",
     "test:node": "node --test",
     "test:python": "cd python && python3 -m pytest tests/ -v",
     "build": "tsc",

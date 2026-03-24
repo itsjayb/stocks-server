@@ -27,7 +27,7 @@ Optional:
 npm run tweet
 ```
 
-Or:
+Or (same as `npm run tweet`; launches the TypeScript job via `tsx`):
 
 ```bash
 node src/jobs/tweet-job.js
@@ -47,7 +47,7 @@ Start the scheduler (runs the tweet job at 8:00, 10:00, 12:00, 14:00, 16:00, 18:
 npm run schedule
 ```
 
-Or:
+Or (same as `npm run schedule`; prefer the TypeScript scheduler):
 
 ```bash
 node src/scheduler.js
@@ -90,7 +90,7 @@ This loads symbols from config, fetches the last 365 days of daily bars from Alp
 
 **Tests:**
 
-- **Node:** `npm test` runs `node --test tests/`, including `tests/pattern-scan.test.js`, which runs the Python script with fixture OHLC and asserts the output shape. Requires Python 3 and `python/requirements.txt` installed.
+- **Node:** `npm test` runs TypeScript tests under `tests/` (pattern scan, tweet type rotation, `/tw/` promo URLs). Requires Python 3 and `python/requirements.txt` installed for the pattern-scan test.
 - **Python:** After `pip install -r python/requirements.txt`, run `npm run test:python` (or `cd python && pytest tests/ -v`) to run `python/tests/test_pattern_scan.py`.
 
 **Tweet symbol selection:** To see which symbols the tweet job would use as “trending” or movers (without posting), run `npm run test:trending`. See [docs/TWEET_PROMPTS.md](docs/TWEET_PROMPTS.md) for how candidates and cash tags work.
