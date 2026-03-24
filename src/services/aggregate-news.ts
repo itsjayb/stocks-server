@@ -6,7 +6,9 @@
 
 import type { NewsItem } from '../types.js';
 
-const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online';
+import { normalizePromoWebsiteUrl } from './tweet-promo-url.js';
+
+const PROMO_URL = normalizePromoWebsiteUrl(process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online');
 const DOMAIN = PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 const MAX_ITEMS = 10;
 

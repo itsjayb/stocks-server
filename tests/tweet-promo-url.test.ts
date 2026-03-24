@@ -4,7 +4,16 @@ import {
   ensureTwReferralInTweet,
   hasTwReferralLink,
   getPromoBaseUrl,
+  normalizePromoWebsiteUrl,
 } from '../src/services/tweet-promo-url.js';
+
+test('normalizePromoWebsiteUrl strips trailing /tw (including doubled)', () => {
+  assert.equal(normalizePromoWebsiteUrl('https://learnstockmarket.online'), 'https://learnstockmarket.online');
+  assert.equal(normalizePromoWebsiteUrl('https://learnstockmarket.online/'), 'https://learnstockmarket.online');
+  assert.equal(normalizePromoWebsiteUrl('https://learnstockmarket.online/tw'), 'https://learnstockmarket.online');
+  assert.equal(normalizePromoWebsiteUrl('https://learnstockmarket.online/tw/'), 'https://learnstockmarket.online');
+  assert.equal(normalizePromoWebsiteUrl('https://learnstockmarket.online/tw/tw'), 'https://learnstockmarket.online');
+});
 
 test('hasTwReferralLink detects /tw/ under promo base', () => {
   const base = 'https://learnstockmarket.online';
@@ -43,4 +52,14 @@ test('ensureTwReferralInTweet does not duplicate when /tw/ already present', () 
   const url = `${base}/tw/strategies`;
   const one = ensureTwReferralInTweet(`Learn more ${url}`, 'strategy', null, base);
   assert.strictEqual(one, `Learn more ${url}`);
+});
+
+test('getPromoBaseUrl strips env PROMO_WEBSITE_URL trailing /tw before building paths', () => {
+  const orig = process.env.PROMO_WEBSITE_URL;
+  process.env.PROMO_WEBSITE_URL = 'https://learnstockmarket.online/tw';
+  assert.equal(getPromoBaseUrl(), 'https://learnstockmarket.online');
+  const p = ensureTwReferralInTweet('Patterns matter.', 'pattern', null, getPromoBaseUrl());
+  assert.match(p, /learnstockmarket\.online\/tw\/patterns$/);
+  assert.doesNotMatch(p, /\/tw\/tw\//);
+  process.env.PROMO_WEBSITE_URL = orig;
 });

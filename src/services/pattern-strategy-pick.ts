@@ -5,8 +5,7 @@
 
 import { readFile } from 'fs/promises';
 
-const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online';
-const BASE = PROMO_URL.replace(/\/$/, '');
+import { getPromoBaseUrl } from './tweet-promo-url.js';
 
 export interface PatternOrStrategyItem {
   name: string;
@@ -51,12 +50,13 @@ export async function pickPatternOrStrategy(): Promise<PatternOrStrategyItem | n
 
     const d = new Date();
     const index = (d.getDate() * 24 + d.getHours()) % total;
+    const base = getPromoBaseUrl();
     if (index < patterns.length) {
       const row = patterns[index];
       return {
         name: row.name,
         description: row.description,
-        url: `${BASE}/tw/pattern/${row.slug}`,
+        url: `${base}/tw/pattern/${row.slug}`,
         kind: 'pattern',
       };
     }
@@ -64,7 +64,7 @@ export async function pickPatternOrStrategy(): Promise<PatternOrStrategyItem | n
     return {
       name: row.name,
       description: row.description,
-      url: `${BASE}/tw/strategy/${row.slug}`,
+      url: `${base}/tw/strategy/${row.slug}`,
       kind: 'strategy',
     };
   } catch (err) {
@@ -84,11 +84,12 @@ export async function pickPattern(): Promise<PatternOrStrategyItem | null> {
 
     const d = new Date();
     const index = (d.getDate() * 24 + d.getHours()) % patterns.length;
+    const base = getPromoBaseUrl();
     const row = patterns[index];
     return {
       name: row.name,
       description: row.description,
-      url: `${BASE}/tw/pattern/${row.slug}`,
+      url: `${base}/tw/pattern/${row.slug}`,
       kind: 'pattern',
     };
   } catch (err) {
@@ -108,11 +109,12 @@ export async function pickStrategy(): Promise<PatternOrStrategyItem | null> {
 
     const d = new Date();
     const index = (d.getDate() * 24 + d.getHours()) % strategies.length;
+    const base = getPromoBaseUrl();
     const row = strategies[index];
     return {
       name: row.name,
       description: row.description,
-      url: `${BASE}/tw/strategy/${row.slug}`,
+      url: `${base}/tw/strategy/${row.slug}`,
       kind: 'strategy',
     };
   } catch (err) {

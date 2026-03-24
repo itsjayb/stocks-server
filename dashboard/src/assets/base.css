@@ -1,69 +1,32 @@
-/* color palette from <https://github.com/vuejs/theme> */
+/* Ops dashboard: dark, readable on a wall display / Raspberry Pi */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  --ops-bg: #0c0f14;
+  --ops-surface: #141922;
+  --ops-border: #2a3140;
+  --ops-text: #e8edf5;
+  --ops-heading: #f1f5ff;
+  --ops-muted: #8b95a8;
+  --ops-accent: #38bdf8;
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
+  --color-background: var(--ops-bg);
+  --color-background-soft: var(--ops-surface);
+  --color-background-mute: #1a1f2a;
 
-  --vt-c-indigo: #2c3e50;
+  --color-border: var(--ops-border);
+  --color-border-hover: #3d4659;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
 
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+  --color-heading: var(--ops-heading);
+  --color-text: var(--ops-text);
+  --color-text-muted: var(--ops-muted);
 
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
-}
+  --color-card: var(--ops-surface);
+  --color-accent: var(--ops-accent);
+  --color-badge: var(--ops-accent);
+  --color-badge-text: #041018;
+  --color-bg-mute: #1a1f2a;
 
-/* semantic color variables for this project */
-:root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
-
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-  --color-border-subtle: rgba(60, 60, 60, 0.08);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
-  --color-text-muted: rgba(60, 60, 60, 0.7);
-
-  --color-card: #ffffff;
-  --color-accent: #0d9488;
-  --color-badge: #0d9488;
-  --color-badge-text: #fff;
-  --color-bg-mute: var(--vt-c-white-mute);
-
-  --section-gap: 160px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #ffffff;
-    --color-background-soft: var(--vt-c-white-soft);
-    --color-background-mute: var(--vt-c-white-mute);
-
-    --color-border: var(--vt-c-divider-light-2);
-    --color-border-hover: var(--vt-c-divider-light-1);
-    --color-border-subtle: rgba(60, 60, 60, 0.08);
-
-    --color-heading: var(--vt-c-text-light-1);
-    --color-text: var(--vt-c-text-light-1);
-    --color-text-muted: rgba(60, 60, 60, 0.7);
-
-    --color-card: #ffffff;
-    --color-accent: #2dd4bf;
-    --color-badge: #0d9488;
-    --color-badge-text: #fff;
-    --color-bg-mute: var(--vt-c-black-mute);
-  }
+  --section-gap: 2rem;
 }
 
 *,
@@ -76,24 +39,17 @@
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
-  background: #f9fafb;
-  transition:
-    color 0.5s,
-    background-color 0.5s;
-  line-height: 1.6;
+  color: var(--ops-text);
+  background: var(--ops-bg);
+  line-height: 1.5;
   font-family:
-    Inter,
+    ui-sans-serif,
+    system-ui,
     -apple-system,
-    BlinkMacSystemFont,
     'Segoe UI',
     Roboto,
-    Oxygen,
     Ubuntu,
     Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
     sans-serif;
   font-size: 15px;
   text-rendering: optimizeLegibility;

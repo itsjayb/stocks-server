@@ -7,9 +7,10 @@
 import type { NewsItem } from '../types.js';
 import type { TweetType } from './aggregate-news.js';
 
-const PROMO_URL = process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online';
+import { getPromoBaseUrl } from './tweet-promo-url.js';
+
 /** Full origin with https — all promo links include /tw/ for Twitter referral tracking. */
-const BASE = PROMO_URL.replace(/\/$/, '');
+const BASE = getPromoBaseUrl();
 
 /** News-only: headline + short take, no website. Job may append tickers. */
 const NEWS_WITH_HEADLINE = [

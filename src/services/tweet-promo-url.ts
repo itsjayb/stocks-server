@@ -6,8 +6,22 @@ import type { TweetType } from './aggregate-news.js';
 
 const DEFAULT_PROMO = 'https://learnstockmarket.online';
 
+/**
+ * Remove trailing /tw segments so we never build URLs like .../tw/tw/patterns when
+ * PROMO_WEBSITE_URL already includes the Twitter referral path.
+ */
+export function normalizePromoWebsiteUrl(url: string): string {
+  let u = url.trim().replace(/\/+$/, '');
+  let prev: string;
+  do {
+    prev = u;
+    u = u.replace(/\/tw$/i, '');
+  } while (u !== prev);
+  return u;
+}
+
 export function getPromoBaseUrl(): string {
-  return (process.env.PROMO_WEBSITE_URL || DEFAULT_PROMO).replace(/\/$/, '');
+  return normalizePromoWebsiteUrl(process.env.PROMO_WEBSITE_URL || DEFAULT_PROMO);
 }
 
 /** True if text contains our base URL followed by /tw/ (referral segment). */
