@@ -8,11 +8,9 @@ test('getFallbackTweet uses headline templates and truncates headline', () => {
 
   const origRand = Math.random;
   try {
-    Math.random = () => 0; // pick first template deterministically
+    Math.random = () => 0;
     const tweet = getFallbackTweet(items, 'news');
-    // news type: should start with truncated headline (max 120 chars)
     assert.strictEqual(tweet.slice(0, 120), longHeadline.slice(0, 120));
-    // news type has no website URL
     assert.doesNotMatch(tweet, /learnstockmarket\.online/);
     assert.ok(tweet.length <= 280);
   } finally {
@@ -23,7 +21,7 @@ test('getFallbackTweet uses headline templates and truncates headline', () => {
 test('getFallbackTweet without items returns a static template', () => {
   const origRand = Math.random;
   try {
-    Math.random = () => 0; // deterministic
+    Math.random = () => 0;
     const tweet = getFallbackTweet([], 'pattern');
     assert.match(tweet, /learnstockmarket\.online\/tw\//);
     assert.ok(tweet.length <= 280);

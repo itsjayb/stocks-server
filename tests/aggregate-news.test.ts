@@ -8,12 +8,11 @@ test('aggregateNews merges, deduplicates, sorts and limits items', () => {
     { headline: 'A2', summary: 's2', url: 'https://x/2', source: 'S', date: '2026-02-18T12:00:00Z' },
   ];
   const b = [
-    { headline: 'A1', summary: 's1', url: 'https://x/1', source: 'S', date: '2026-02-19T12:00:00Z' }, // dup
+    { headline: 'A1', summary: 's1', url: 'https://x/1', source: 'S', date: '2026-02-19T12:00:00Z' },
     { headline: 'B1', summary: 's3', url: 'https://x/3', source: 'S', date: '2026-02-20T09:00:00Z' },
   ];
 
   const combined = aggregateNews([a, b]);
-  // Expect unique urls, sorted by date desc
   assert.strictEqual(combined.length, 3);
   assert.strictEqual(combined[0].headline, 'B1');
   assert.strictEqual(combined[1].headline, 'A1');
@@ -35,6 +34,5 @@ test('buildPrompt includes site description and news', () => {
   const prompt = buildPrompt(news);
   assert.match(prompt, /Market news:/);
   assert.match(prompt, /H/);
-  // PROMO URL default should be present
   assert.match(prompt, /learnstockmarket.online/);
 });

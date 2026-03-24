@@ -27,10 +27,10 @@ Optional:
 npm run tweet
 ```
 
-Or (same as `npm run tweet`; launches the TypeScript job via `tsx`):
+Equivalent:
 
 ```bash
-node src/jobs/tweet-job.js
+npx tsx src/jobs/tweet-job.ts
 ```
 
 To test without posting, set `DRY_RUN=true` in `.env` or run:
@@ -47,10 +47,10 @@ Start the scheduler (runs the tweet job at 8:00, 10:00, 12:00, 14:00, 16:00, 18:
 npm run schedule
 ```
 
-Or (same as `npm run schedule`; prefer the TypeScript scheduler):
+Equivalent:
 
 ```bash
-node src/scheduler.js
+npx tsx src/scheduler.ts
 ```
 
 **Run with PM2 (recommended):**
@@ -62,6 +62,10 @@ npm run pm2:start
 This starts the scheduler as a background process. Posting will begin on or after `POST_START_DATE` (see env). Logs: `npm run pm2:logs`. Stop: `npm run pm2:stop`.
 
 You can also keep the process running with `npm run schedule` in a terminal, or use system cron to run `npm run tweet` 6 times per day at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00.
+
+### Raspberry Pi (or any deploy host)
+
+Source under `src/` is **TypeScript only**. After `git pull`, run `npm install` (this installs **`tsx`** from `dependencies`, so you do not need a separate compile step to run jobs). Use **`npm run tweet`**, **`npm run schedule`**, or **`npm run pm2:start`** — do not run `node` directly on `.ts` files.
 
 ## Chart pattern scan (Python + Node)
 
@@ -90,7 +94,7 @@ This loads symbols from config, fetches the last 365 days of daily bars from Alp
 
 **Tests:**
 
-- **Node:** `npm test` runs TypeScript tests under `tests/` (pattern scan, tweet type rotation, `/tw/` promo URLs). Requires Python 3 and `python/requirements.txt` installed for the pattern-scan test.
+- **Node:** `npm test` runs TypeScript tests under `tests/` (pattern scan, news aggregation, tweet templates, tweet type rotation, `/tw/` promo URLs). Requires Python 3 and `python/requirements.txt` installed for the pattern-scan test.
 - **Python:** After `pip install -r python/requirements.txt`, run `npm run test:python` (or `cd python && pytest tests/ -v`) to run `python/tests/test_pattern_scan.py`.
 
 **Tweet symbol selection:** To see which symbols the tweet job would use as “trending” or movers (without posting), run `npm run test:trending`. See [docs/TWEET_PROMPTS.md](docs/TWEET_PROMPTS.md) for how candidates and cash tags work.

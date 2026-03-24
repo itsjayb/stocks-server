@@ -17,7 +17,7 @@
     "test:trending": "tsx scripts/test-trending-symbols.ts",
     "dashboard:build": "cd dashboard && npm run build",
     "dashboard:serve": "tsx src/dashboard-server.ts",
-    "test": "node --import tsx --test tests/pattern-scan.test.ts tests/tweet-type.test.ts tests/tweet-promo-url.test.ts",
+    "test": "node --import tsx --test tests/pattern-scan.test.ts tests/tweet-type.test.ts tests/tweet-promo-url.test.ts tests/aggregate-news.test.ts tests/templates-fallback.test.ts",
     "test:node": "node --test",
     "test:python": "cd python && python3 -m pytest tests/ -v",
     "build": "tsc",
@@ -31,12 +31,12 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "node-cron": "^4.2.1",
-    "oauth-1.0a": "^2.2.6"
+    "oauth-1.0a": "^2.2.6",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^22.10.1",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }
