@@ -59,6 +59,10 @@ async function detectModel(): Promise<string> {
 const TIMEOUT_MS = 120000; // legacy overall timeout (kept for logs)
 const REQUEST_TIMEOUT_MS = Number(process.env.OLLAMA_REQUEST_TIMEOUT_MS) || 60000;
 const MAX_RETRIES = Number(process.env.OLLAMA_MAX_RETRIES) || 3;
+/** Optional pause (ms) before the first /api/generate call — helps cold model load on slow hosts (e.g. Pi). */
+const INITIAL_DELAY_MS = Number(process.env.OLLAMA_INITIAL_DELAY_MS) || 0;
+/** Base backoff (ms) between HTTP retries; attempt n waits RETRY_BACKOFF_MS * 2^n. */
+const RETRY_BACKOFF_MS = Number(process.env.OLLAMA_RETRY_BACKOFF_MS) || 500;
 
 function runCliGenerate(model: string, prompt: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -128,6 +132,14 @@ export async function generateTweet(prompt: string): Promise<string> {
     stream: false,
   };
 
+  if (INITIAL_DELAY_MS > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Ollama] Waiting ${INITIAL_DELAY_MS}ms before generate (OLLAMA_INITIAL_DELAY_MS); timeout per request ${REQUEST_TIMEOUT_MS}ms`
+    );
+    await new Promise((r) => setTimeout(r, INITIAL_DELAY_MS));
+  }
+
   try {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       const attemptDesc = `attempt ${attempt + 1}/${MAX_RETRIES + 1}`;
@@ -176,7 +188,7 @@ export async function generateTweet(prompt: string): Promise<string> {
         const isAbort = (err as any)?.name === 'AbortError';
         console.warn(`Ollama ${attemptDesc} failed`, { url, model, error: err, isAbort });
         if (attempt < MAX_RETRIES) {
-          const backoff = 500 * Math.pow(2, attempt);
+          const backoff = RETRY_BACKOFF_MS * Math.pow(2, attempt);
           // eslint-disable-next-line no-await-in-loop
           await new Promise((r) => setTimeout(r, backoff));
           continue;
