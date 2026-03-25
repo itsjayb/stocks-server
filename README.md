@@ -39,9 +39,9 @@ To test without posting, set `DRY_RUN=true` in `.env` or run:
 DRY_RUN=true npm run tweet
 ```
 
-## Run 6 posts per day
+## Run 7 posts per day
 
-Start the scheduler (runs the tweet job at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00 in the server’s timezone):
+Start the scheduler (runs the tweet job at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 19:00 Central Time — `America/Chicago` in `src/scheduler.ts`):
 
 ```bash
 npm run schedule
@@ -61,7 +61,7 @@ npm run pm2:start
 
 This starts the scheduler as a background process. Posting will begin on or after `POST_START_DATE` (see env). Logs: `npm run pm2:logs`. Stop: `npm run pm2:stop`.
 
-You can also keep the process running with `npm run schedule` in a terminal, or use system cron to run `npm run tweet` 6 times per day at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00.
+You can also keep the process running with `npm run schedule` in a terminal, or use system cron to run `npm run tweet` 7 times per weekday at 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, and 19:00 CT (same hours as `src/scheduler.ts`).
 
 ### Raspberry Pi (or any deploy host)
 
