@@ -49,10 +49,8 @@ async function detectModel(): Promise<string> {
         }
       }
     }
-  } catch {
-    // Log detection errors to aid troubleshooting, then fall back to preferred list
-    // eslint-disable-next-line no-console
-    console.warn('Ollama detectModel failed — falling back to preferred models', e);
+  } catch (err) {
+    console.warn('Ollama detectModel failed — falling back to preferred models', (err as Error).message);
   }
 
   cachedModel = PREFERRED_MODELS[0] || 'llama3.2:latest';

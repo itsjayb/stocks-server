@@ -54,8 +54,31 @@ async function run(): Promise<void> {
 
     const items = aggregateNews([alpaca, finnhub, alphavantage]);
 
+    console.log('[tweet-job] News counts', {
+      alpaca: alpaca.length,
+      finnhub: finnhub.length,
+      alphavantage: alphavantage.length,
+      aggregated: items.length,
+    });
+
     // Rotate tweet type: news, pattern promo, strategy promo (promo links use /tw/ for tracking).
-    const tweetType = pickTweetType();
+    let tweetType = pickTweetType();
+
+    // With no headlines, pattern/strategy fallbacks are website-only CTAs. Prefer news-style +
+    // generic lines + tickers (same as missing LLM for news) so a host without API keys does not
+    // only post promos. Full promos need real news context or a working Ollama for those types.
+    if (items.length === 0) {
+      if (tweetType !== 'news') {
+        console.warn(
+          '[tweet-job] No news from APIs; switching tweet type from',
+          tweetType,
+          'to news. Set VITE_ALPACA_* / FINNHUB_API_KEY / ALPHA_VANTAGE_API_KEY and check network.'
+        );
+      }
+      tweetType = 'news';
+    }
+
+    console.log('[tweet-job] Tweet type this run:', tweetType);
 
     // Load candidate symbols once for prompt and optional cash-tag append.
     // Supports useMasterList (STOCKS from src/stocks.ts) or explicit "symbols" array.
