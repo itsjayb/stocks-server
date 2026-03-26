@@ -1,10 +1,8 @@
 /**
  * Aggregate news from multiple sources, deduplicate, trim, and build the LLM prompt.
  * Includes canonical site description for learnstockmarket.online so tweets advertise correctly.
- * Supports three tweet types: news (no CTA), pattern promo, strategy promo (promo links use /tw/ for tracking).
+ * Supports three tweet types: news (no CTA), pattern promo, and strategy promo.
  */
-
-import type { NewsItem } from '../types.js';
 
 import { normalizePromoWebsiteUrl } from './tweet-promo-url.js';
 
@@ -12,13 +10,15 @@ const PROMO_URL = normalizePromoWebsiteUrl(process.env.PROMO_WEBSITE_URL || 'htt
 const DOMAIN = PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 const MAX_ITEMS = 10;
 
-export type TweetType = 'news' | 'pattern' | 'strategy';
-
 const SITE_DESCRIPTION = `The site is ${DOMAIN}. It teaches chart patterns (support/resistance, trend patterns) at /patterns, and trading strategies (entries, exits, risk) at /strategies. Content is organized as lessons so users can follow a path and track progress.`;
 
-export function aggregateNews(arrays: (NewsItem[] | unknown)[]): NewsItem[] {
-  const seen = new Set<string>();
-  const combined: NewsItem[] = [];
+/**
+ * @param {{ headline: string, summary?: string, url?: string, source?: string, date?: string }[][]} arrays
+ * @returns {{ headline: string, summary?: string, url?: string, source?: string, date?: string }[]}
+ */
+export function aggregateNews(arrays) {
+  const seen = new Set();
+  const combined = [];
 
   for (const arr of arrays) {
     if (!Array.isArray(arr)) continue;
@@ -27,7 +27,7 @@ export function aggregateNews(arrays: (NewsItem[] | unknown)[]): NewsItem[] {
       const key = (item.url || item.headline).slice(0, 120);
       if (seen.has(key)) continue;
       seen.add(key);
-      combined.push(item as NewsItem);
+      combined.push(item);
     }
   }
 
@@ -40,7 +40,11 @@ export function aggregateNews(arrays: (NewsItem[] | unknown)[]): NewsItem[] {
   return combined.slice(0, MAX_ITEMS);
 }
 
-export function buildNewsString(items: NewsItem[]): string {
+/**
+ * Build the news string for the prompt.
+ * @param {{ headline: string, summary?: string, url?: string, source?: string }[]} items
+ */
+export function buildNewsString(items) {
   return items
     .map(
       (item) =>
@@ -49,24 +53,13 @@ export function buildNewsString(items: NewsItem[]): string {
     .join('\n');
 }
 
-/** Options for building a type-specific prompt. */
-export interface BuildPromptOptions {
-  candidateSymbols?: string[];
-  /** When type is 'pattern' or 'strategy', use this specific item and its URL (/tw/ referral). */
-  patternOrStrategy?: { name: string; description: string; url: string; kind: 'pattern' | 'strategy' };
-}
-
 /**
- * Build prompt for the given tweet type. Varying the type produces different content:
- * - news: headline-focused, no website CTA; LLM identifies affected stocks (limit 3), optional tactical context.
- * - pattern: one pattern hook with success rate, CTA; NO tickers (avoid implying tickers match the pattern).
- * - strategy: one strategy hook, CAN include tickers (ETFs, sector ETFs).
+ * Build prompt for the given tweet type.
+ * @param {string} newsString
+ * @param {'news'|'pattern'|'strategy'} type
+ * @param {{ candidateSymbols?: string[], patternOrStrategy?: { name: string, description: string, url: string, kind: 'pattern'|'strategy' } }} [options]
  */
-export function buildPromptForType(
-  newsString: string,
-  type: TweetType,
-  options: BuildPromptOptions = {}
-): string {
+export function buildPromptForType(newsString, type, options = {}) {
   const { candidateSymbols = [], patternOrStrategy } = options;
   const symbolHint =
     candidateSymbols.length > 0
@@ -89,7 +82,7 @@ ${rules}`;
 
   if (type === 'pattern') {
     const system = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION} Goal: educate and promote pattern learning.`;
-    let task: string;
+    let task;
     if (patternOrStrategy && patternOrStrategy.kind === 'pattern') {
       task = `Write exactly ONE tweet that promotes this specific pattern: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook with a concrete stat when available (e.g. "known to have roughly 70% success rate when confirmed"). Do NOT include any stock tickers or cash tags – we do not want to imply specific stocks match this pattern. End with this exact URL: ${patternOrStrategy.url}. Do NOT paste news headlines. ${rules}`;
     } else {
@@ -98,9 +91,8 @@ ${rules}`;
     return `${system}\n\n${task}\n\nOptional context from recent market news (do not quote verbatim):\n${newsString}`;
   }
 
-  // type === 'strategy'
   const system = `You write short, engaging tweets for a stock market learning site. ${SITE_DESCRIPTION} Goal: educate and promote strategy learning.`;
-  let task: string;
+  let task;
   if (patternOrStrategy && patternOrStrategy.kind === 'strategy') {
     task = `Write exactly ONE tweet that promotes this specific strategy: "${patternOrStrategy.name}". One-line description: ${patternOrStrategy.description}. Use a short hook (e.g. "one of the most popular trading strategies" or why it matters). You MAY include 1–3 relevant tickers or ETFs (e.g. $SPY $QQQ $XLF) that fit the strategy – strategies can apply to ETFs and sectors. ${symbolHint} End with this exact URL: ${patternOrStrategy.url}. Do NOT paste news headlines. ${rules}`;
   } else {
@@ -112,23 +104,18 @@ ${rules}`;
 /**
  * Default prompt builder (backward compatible). Uses 'news' type.
  */
-export function buildPrompt(newsString: string): string {
+export function buildPrompt(newsString) {
   return buildPromptForType(newsString, 'news');
 }
 
-export const TWEET_TYPES: readonly TweetType[] = ['news', 'pattern', 'strategy'];
-
-export function isValidTweetType(t: string): t is TweetType {
-  return (TWEET_TYPES as readonly string[]).includes(t);
-}
+const TWEET_TYPES = ['news', 'pattern', 'strategy'];
 
 /**
  * Pick a tweet type for this run so we rotate content: news, pattern promo, strategy promo.
  * Uses time-based rotation (hour + day) so we switch it up across runs.
- * @param now — Optional clock for tests (defaults to current time).
  */
-export function pickTweetType(now: Date = new Date()): TweetType {
-  const d = now;
+export function pickTweetType() {
+  const d = new Date();
   const index = (d.getDate() * 24 + d.getHours()) % TWEET_TYPES.length;
   return TWEET_TYPES[index];
 }
@@ -136,10 +123,12 @@ export function pickTweetType(now: Date = new Date()): TweetType {
 /**
  * Pick the next type in round-robin order based on the previous run.
  * Falls back to time-based rotation when previous type is missing/invalid.
+ * @param {string|null|undefined} previousType
+ * @returns {'news'|'pattern'|'strategy'}
  */
-export function getNextTweetType(previousType?: string | null): TweetType {
-  if (previousType && TWEET_TYPES.includes(previousType as TweetType)) {
-    const currentIndex = TWEET_TYPES.indexOf(previousType as TweetType);
+export function getNextTweetType(previousType) {
+  if (previousType && TWEET_TYPES.includes(previousType)) {
+    const currentIndex = TWEET_TYPES.indexOf(previousType);
     return TWEET_TYPES[(currentIndex + 1) % TWEET_TYPES.length];
   }
   return pickTweetType();

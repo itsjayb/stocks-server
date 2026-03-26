@@ -4,13 +4,10 @@
  * Supports tweet types: news (no CTA), pattern (no tickers), strategy (can include tickers/ETFs).
  */
 
-import type { NewsItem } from '../types.js';
-import type { TweetType } from './aggregate-news.js';
+import { normalizePromoWebsiteUrl } from './tweet-promo-url.js';
 
-import { getPromoBaseUrl } from './tweet-promo-url.js';
-
-/** Full origin with https — all promo links include /tw/ for Twitter referral tracking. */
-const BASE = getPromoBaseUrl();
+const PROMO_URL = normalizePromoWebsiteUrl(process.env.PROMO_WEBSITE_URL || 'https://learnstockmarket.online');
+const domain = PROMO_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 /** News-only: headline + short take, no website. Job may append tickers. */
 const NEWS_WITH_HEADLINE = [
@@ -32,10 +29,10 @@ const PATTERN_WITH_ITEM = [
 ];
 
 const PATTERN_STATIC = [
-  `Head & Shoulders is known to have roughly a 70% success rate when confirmed. Learn it step by step: ${BASE}/tw/patterns`,
-  `New to trading? Learn support, resistance, and trend patterns step by step. ${BASE}/tw/patterns`,
-  `Double Top and Double Bottom – reversal patterns pros use. Learn them: ${BASE}/tw/patterns`,
-  `Support, resistance, trend patterns – learn them with structured lessons. ${BASE}/tw/patterns`,
+  `Head & Shoulders is known to have roughly a 70% success rate when confirmed. Learn it step by step: ${domain}/tw/patterns`,
+  `New to trading? Learn support, resistance, and trend patterns step by step. ${domain}/tw/patterns`,
+  `Double Top and Double Bottom – reversal patterns pros use. Learn them: ${domain}/tw/patterns`,
+  `Support, resistance, trend patterns – learn them with structured lessons. ${domain}/tw/patterns`,
 ];
 
 /** Strategy promo: can include tickers (ETFs). Focus on strategy + URL. */
@@ -45,30 +42,26 @@ const STRATEGY_WITH_ITEM = [
 ];
 
 const STRATEGY_STATIC = [
-  `Plan your entries and exits like a pro. Trading strategies explained: ${BASE}/tw/strategies`,
-  `Moving Average Crossover – simple and effective. Learn it: ${BASE}/tw/strategies`,
-  `Entries, exits, and risk – walk through real trading strategies. ${BASE}/tw/strategies`,
+  `Plan your entries and exits like a pro. Trading strategies explained: ${domain}/tw/strategies`,
+  `Moving Average Crossover – simple and effective. Learn it: ${domain}/tw/strategies`,
+  `Entries, exits, and risk – walk through real trading strategies. ${domain}/tw/strategies`,
 ];
 
 const MAX_HEADLINE_IN_TWEET = 120;
 const MAX_DESCRIPTION_IN_FALLBACK = 80;
 
-export interface PatternOrStrategyForFallback {
-  name: string;
-  description: string;
-  url: string;
-}
-
-export function getFallbackTweet(
-  items: NewsItem[] = [],
-  type: TweetType = 'news',
-  patternOrStrategy?: PatternOrStrategyForFallback
-): string {
+/**
+ * Get a random fallback tweet.
+ * @param {{ headline: string }[]} [items]
+ * @param {'news'|'pattern'|'strategy'} [type='news']
+ * @param {{ name: string, description: string, url: string }} [patternOrStrategy] - When type is pattern/strategy, use this for specific item + URL
+ */
+export function getFallbackTweet(items = [], type = 'news', patternOrStrategy = null) {
   const headline = items.length > 0 && items[0].headline
     ? items[0].headline.slice(0, MAX_HEADLINE_IN_TWEET).trim()
     : '';
 
-  let pool: string[];
+  let pool;
   if (type === 'news') {
     pool = headline.length > 0 ? NEWS_WITH_HEADLINE : NEWS_STATIC;
   } else if (type === 'pattern') {

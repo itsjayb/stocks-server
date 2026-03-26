@@ -18,7 +18,7 @@
     "dashboard:build": "cd dashboard && npm run build",
     "dashboard:deploy": "npm run dashboard:build && pm2 restart dashboard",
     "dashboard:serve": "tsx src/dashboard-server.ts",
-    "test": "node --import tsx --test tests/pattern-scan.test.ts tests/tweet-type.test.ts tests/tweet-promo-url.test.ts tests/aggregate-news.test.ts tests/templates-fallback.test.ts",
+    "test": "node --import tsx --test tests/pattern-scan.test.ts tests/tweet-type.test.ts tests/tweet-promo-url.test.ts tests/aggregate-news.test.ts tests/templates-fallback.test.ts tests/pattern-strategy-pick-rotation.test.ts",
     "test:node": "node --test",
     "test:python": "cd python && python3 -m pytest tests/ -v",
     "build": "tsc",
