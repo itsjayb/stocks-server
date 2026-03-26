@@ -17,8 +17,7 @@
  * │ 5:30 PM  │  Market Insights (reads all services)               │
  * ├──────────┼──────────────────────────────────────────────────────┤
  * │ 8,10,12, │  Tweet job (opt-in, RUN_TWEET_JOB=true)             │
- * │ 14,16,18,│                                                      │
- * │ 19       │                                                      │
+ * │ 14,16,18 │  + 7:40 PM (hourly on the hour otherwise)           │
  * └──────────┴──────────────────────────────────────────────────────┘
  *
  * Start with: tsx src/scheduler.ts  or  pm2 start ecosystem.config.cjs
@@ -80,9 +79,10 @@ console.log('[scheduler] Market Insights: 5:30 PM CT.');
 
 // ── Tweet job (opt-in) ──
 if (RUN_TWEET_JOB) {
-  const TWEET_SCHEDULE = '0 8,10,12,14,16,18,19 * * 1-5';
-  cron.schedule(TWEET_SCHEDULE, () => runJob('tweet', 'tweet-job.ts'), { timezone: TZ });
-  console.log('[scheduler] Tweet job: 8 AM, 10, 12, 2, 4, 6, 7 PM CT (Mon–Fri).');
+  const tweetOnHour = '0 8,10,12,14,16,18 * * 1-5';
+  cron.schedule(tweetOnHour, () => runJob('tweet', 'tweet-job.ts'), { timezone: TZ });
+  cron.schedule('40 19 * * 1-5', () => runJob('tweet', 'tweet-job.ts'), { timezone: TZ });
+  console.log('[scheduler] Tweet job: 8 AM, 10, 12, 2, 4, 6 PM on the hour; 7:40 PM CT (Mon–Fri).');
 } else {
   console.log('[scheduler] Tweet job disabled. Set RUN_TWEET_JOB=true to enable.');
 }
