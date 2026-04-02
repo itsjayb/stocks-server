@@ -1,43 +1,32 @@
 {
   "name": "stocks-server",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "private": true,
   "type": "module",
-  "main": "src/jobs/tweet-job.ts",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "tweet": "tsx src/jobs/tweet-job.ts",
-    "schedule": "tsx src/scheduler.ts",
-    "pattern-scan": "tsx src/jobs/pattern-scan-job.ts",
-    "movers": "tsx src/jobs/movers-job.ts",
-    "smart-movers": "tsx src/jobs/smart-movers-job.ts",
-    "pattern-alerts": "tsx src/jobs/pattern-alerts-job.ts",
-    "sector-momentum": "tsx src/jobs/sector-momentum-job.ts",
-    "momentum-scanner": "tsx src/jobs/momentum-scanner-job.ts",
-    "stock-picks": "tsx src/jobs/stock-picks-job.ts",
-    "market-insights": "tsx src/jobs/market-insights-job.ts",
-    "test:trending": "tsx scripts/test-trending-symbols.ts",
-    "dashboard:build": "cd dashboard && npm run build",
-    "dashboard:deploy": "npm run dashboard:build && pm2 restart dashboard",
-    "dashboard:serve": "tsx src/dashboard-server.ts",
-    "test": "node --import tsx --test tests/pattern-scan.test.ts tests/tweet-type.test.ts tests/tweet-promo-url.test.ts tests/aggregate-news.test.ts tests/templates-fallback.test.ts tests/pattern-strategy-pick-rotation.test.ts",
-    "test:node": "node --test",
-    "test:python": "cd python && python3 -m pytest tests/ -v",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "pm2:start": "pm2 start ecosystem.config.cjs",
-    "pm2:stop": "pm2 stop pattern-scheduler dashboard",
-    "pm2:logs": "pm2 logs"
+    "mint-jwt": "tsx scripts/mint-jwt.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.97.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "node-cron": "^4.2.1",
-    "oauth-1.0a": "^2.2.6",
-    "tsx": "^4.19.2"
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jose": "^6.2.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }
