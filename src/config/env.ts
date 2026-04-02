@@ -52,8 +52,8 @@ export const env = {
   fredApiKey: optional("FRED_API_KEY"),
 
   /** Supabase (app auth, user profile, billing, social) — same project as the web app. */
-  supabaseUrl: optional("SUPABASE_URL"),
-  supabaseAnonKey: optional("SUPABASE_ANON_KEY"),
+  supabaseUrl: optional("SUPABASE_URL") ?? optional("VITE_SUPABASE_URL"),
+  supabaseAnonKey: optional("SUPABASE_ANON_KEY") ?? optional("VITE_SUPABASE_ANON_KEY"),
 
   /** Stripe secret for `/billing/*` (never expose to browsers). */
   stripeSecretKey: optional("STRIPE_SECRET_KEY"),
