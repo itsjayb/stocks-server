@@ -31,7 +31,7 @@ export const env = {
   apiClients,
   apiClientByKey: apiClientLookupMap(apiClients),
 
-  /** HS256 secret for `Authorization: Bearer <jwt>`. Claims: `sub`, `tier` (free|beginner|master), `exp`. */
+  /** HS256 secret for `Authorization: Bearer <jwt>`. Claims: `sub`, `tier` (free|beginner|master), `exp`; optional `visitor: true` for anonymous preview (subset of Free tier). */
   stocksServerJwtSecret: optional("STOCKS_SERVER_JWT_SECRET"),
 
   /** Comma-separated origins for `Access-Control-Allow-Origin`. Empty = no CORS middleware. */
@@ -52,8 +52,8 @@ export const env = {
   fredApiKey: optional("FRED_API_KEY"),
 
   /** Supabase (app auth, user profile, billing, social) — same project as the web app. */
-  supabaseUrl: optional("SUPABASE_URL") ?? optional("VITE_SUPABASE_URL"),
-  supabaseAnonKey: optional("SUPABASE_ANON_KEY") ?? optional("VITE_SUPABASE_ANON_KEY"),
+  supabaseUrl: optional("SUPABASE_URL"),
+  supabaseAnonKey: optional("SUPABASE_ANON_KEY"),
 
   /** Stripe secret for `/billing/*` (never expose to browsers). */
   stripeSecretKey: optional("STRIPE_SECRET_KEY"),

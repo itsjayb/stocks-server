@@ -2,6 +2,7 @@ import { Router } from "express";
 import { alpacaConfigured } from "../../config/env.js";
 import { asyncHandler } from "../../lib/async-handler.js";
 import { HttpError } from "../../lib/http-error.js";
+import { requireFreeTierEntitlement } from "../../middleware/require-free-tier-entitlement.js";
 import { maxTopForTier } from "../../types/tier.js";
 import {
   getTopGainersLosers,
@@ -72,6 +73,7 @@ marketRouter.get(
 
 marketRouter.get(
   "/most-active",
+  requireFreeTierEntitlement("unusual_volume"),
   asyncHandler(async (req, res) => {
     const tierTop = maxTopForTier(req.subscriptionTier);
     const top = parseTop(req.query.top, tierTop);

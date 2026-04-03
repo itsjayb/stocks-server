@@ -41,6 +41,7 @@ export const apiAuthAndTier = asyncHandler(async (req: Request, _res: Response, 
   if (!needAuth) {
     req.subscriptionTier = env.nodeEnv === "production" ? "free" : "master";
     req.authSubject = undefined;
+    req.hasFreeAccount = true;
     next();
     return;
   }
@@ -61,6 +62,7 @@ export const apiAuthAndTier = asyncHandler(async (req: Request, _res: Response, 
       }
       req.subscriptionTier = tier;
       req.authSubject = sub ?? "jwt";
+      req.hasFreeAccount = !("visitor" in payload && payload.visitor === true);
       next();
       return;
     } catch (e) {
@@ -77,6 +79,7 @@ export const apiAuthAndTier = asyncHandler(async (req: Request, _res: Response, 
   if (client) {
     req.subscriptionTier = client.tier;
     req.authSubject = client.id;
+    req.hasFreeAccount = true;
     next();
     return;
   }
@@ -84,6 +87,8 @@ export const apiAuthAndTier = asyncHandler(async (req: Request, _res: Response, 
   if (legacy && credential === legacy) {
     req.subscriptionTier = resolveLegacyTier(req, true);
     req.authSubject = "legacy";
+    const v = req.header("x-visitor-preview");
+    req.hasFreeAccount = !(typeof v === "string" && v.toLowerCase() === "true");
     next();
     return;
   }

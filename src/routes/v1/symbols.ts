@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/async-handler.js";
 import { HttpError } from "../../lib/http-error.js";
 import { requireFinnhubConfigured } from "../../middleware/require-finnhub.js";
+import { requireFreeTierEntitlement } from "../../middleware/require-free-tier-entitlement.js";
 import { requireTier } from "../../middleware/require-tier.js";
 import * as finnhub from "../../services/finnhub.js";
 
@@ -33,7 +34,7 @@ function defaultNewsRange(): { from: string; to: string } {
 
 symbolsRouter.get(
   "/:symbol/quote",
-  requireTier("beginner"),
+  requireFreeTierEntitlement("compact_watchlist"),
   asyncHandler(async (req, res) => {
     const symbol = parseSymbol(req.params.symbol);
     const data = await finnhub.getQuote(symbol);
@@ -43,7 +44,7 @@ symbolsRouter.get(
 
 symbolsRouter.get(
   "/:symbol/news",
-  requireTier("beginner"),
+  requireFreeTierEntitlement("headline_news"),
   asyncHandler(async (req, res) => {
     const symbol = parseSymbol(req.params.symbol);
     const { from, to } =
