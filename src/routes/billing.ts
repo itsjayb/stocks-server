@@ -6,6 +6,12 @@ import { requireSupabaseUser } from "../lib/supabase-app.js";
 
 export const billingRouter = Router();
 
+/** Must match SPA `stocksforbeginner/src/lib/tiers.ts` `priceCents` for paid tiers. */
+const TIER_PRICE_CENTS: Record<"beginner" | "master", number> = {
+  beginner: 999,
+  master: 1999,
+};
+
 interface PaymentIntentBody {
   amount: number;
   currency: string;
@@ -30,6 +36,14 @@ billingRouter.post(
     }
     if (userId !== user.id) {
       throw new HttpError(403, "userId does not match authenticated user", { code: "forbidden" });
+    }
+
+    if (tier === "beginner" || tier === "master") {
+      if (amount !== TIER_PRICE_CENTS[tier]) {
+        throw new HttpError(400, "amount does not match selected tier", { code: "invalid_amount" });
+      }
+    } else if (tier !== undefined) {
+      throw new HttpError(400, "tier must be beginner or master", { code: "invalid_body" });
     }
 
     const paymentIntentResponse = await fetch("https://api.stripe.com/v1/payment_intents", {
@@ -63,7 +77,8 @@ interface ActivateBody {
   tier: "beginner" | "master";
 }
 
-const AMOUNTS: Record<"beginner" | "master", number> = {
+/** Stored subscription amount (USD); must match SPA tier `price` in `tiers.ts`. */
+const TIER_AMOUNT_PAID_USD: Record<"beginner" | "master", number> = {
   beginner: 9.99,
   master: 19.99,
 };
@@ -85,7 +100,7 @@ billingRouter.post(
       throw new HttpError(400, "tier must be beginner or master", { code: "invalid_body" });
     }
 
-    const amount = AMOUNTS[tier];
+    const amount = TIER_AMOUNT_PAID_USD[tier];
     const now = new Date().toISOString();
 
     const { error } = await supabase.from("user_subscriptions").upsert(
