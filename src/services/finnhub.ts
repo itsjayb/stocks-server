@@ -5,7 +5,11 @@ const BASE = "https://finnhub.io/api/v1";
 
 async function finnhubGet<T>(path: string, params: Record<string, string>): Promise<T> {
   const token = requireFinnhub();
-  const url = new URL(path, BASE);
+  // Paths like "/quote" must not use `new URL("/quote", BASE)` — a leading "/" replaces
+  // the whole pathname, so https://finnhub.io/api/v1 + /quote becomes https://finnhub.io/quote (HTML).
+  const base = BASE.endsWith("/") ? BASE : `${BASE}/`;
+  const relative = path.startsWith("/") ? path.slice(1) : path;
+  const url = new URL(relative, base);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
