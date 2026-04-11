@@ -34,6 +34,14 @@ export const env = {
   /** HS256 secret for `Authorization: Bearer <jwt>`. Claims: `sub`, `tier` (free|beginner|master), `exp`; optional `visitor: true` for anonymous preview (subset of Free tier). */
   stocksServerJwtSecret: optional("STOCKS_SERVER_JWT_SECRET"),
 
+  /**
+   * When `/v1/*` requires credentials (API key / JWT mode), allow requests with no `X-Api-Key` or `Authorization`
+   * to proceed as anonymous visitors (`subscriptionTier: free`, `hasFreeAccount: false`).
+   * Set to `false` to require a key or token for every `/v1` call (stricter).
+   * Default: true (browsers call `/v1` with only a Supabase session when logged in; logged-out users stay anonymous).
+   */
+  v1AllowAnonymousVisitor: optional("STOCKS_SERVER_V1_ANONYMOUS_VISITOR") !== "false",
+
   /** Comma-separated origins for `Access-Control-Allow-Origin`. Empty = no CORS middleware. */
   corsOrigins: (optional("STOCKS_SERVER_CORS_ORIGINS") ?? "")
     .split(",")

@@ -6,7 +6,7 @@ metaRouter.get("/tiers", (_req, res) => {
   res.json({
     visitorPreview: {
       description:
-        "Anonymous visitors (JWT claim visitor: true, or legacy key + X-Visitor-Preview: true) get a subset of Free-tier APIs.",
+        "Anonymous visitors (no auth when allowed, JWT claim visitor: true, or legacy key + X-Visitor-Preview: true) get a subset of Free-tier APIs.",
       endpoints: [
         "GET /v1/market/movers (gainers & losers)",
         "GET /v1/symbols/:symbol/quote (compact watchlist)",
@@ -52,11 +52,11 @@ metaRouter.get("/tiers", (_req, res) => {
     },
     headers: {
       tier:
-        "With legacy STOCKS_SERVER_API_KEY only: X-Subscription-Tier or ?tier=. With STOCKS_SERVER_API_CLIENTS or JWT, tier is set server-side (do not trust client tier headers for billing).",
+        "Supabase users: send Authorization: Bearer <access_token>; tier comes from user_subscriptions (ignore client tier headers). Legacy STOCKS_SERVER_API_KEY: X-Subscription-Tier or ?tier=. Per-customer keys and HS256 app JWTs also bind tier server-side.",
       apiKey:
-        "X-Api-Key or Authorization: Bearer <key>. Use per-customer keys via STOCKS_SERVER_API_CLIENTS, or HS256 JWT signed with STOCKS_SERVER_JWT_SECRET (claims: sub, tier, exp).",
+        "X-Api-Key or Authorization: Bearer (API key, HS256 app JWT, or Supabase session JWT). Anonymous browsers may omit credentials when STOCKS_SERVER_V1_ANONYMOUS_VISITOR is not false.",
       visitorPreview:
-        "Legacy key only: X-Visitor-Preview: true means anonymous visitor (subset of Free tier). JWT: set claim visitor: true for the same. Default / omitted = full Free tier with that key.",
+        "Legacy key: X-Visitor-Preview: true = anonymous visitor. HS256 JWT: claim visitor: true. No credentials + anonymous allowed = visitor. Signed-in Supabase users are full Free tier (or paid tier from DB).",
     },
   });
 });

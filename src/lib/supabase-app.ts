@@ -1,8 +1,10 @@
 import type { Request } from "express";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import type { Tier } from "../types/tier.js";
 import { env } from "../config/env.js";
 import { extractBearer } from "./bearer.js";
 import { HttpError } from "./http-error.js";
+import { subscriptionRowToTier, type SubscriptionRow } from "./subscription-tier.js";
 
 function requireSupabase(): { url: string; anonKey: string } {
   const url = env.supabaseUrl;
@@ -49,4 +51,32 @@ export async function requireSupabaseUser(req: Request): Promise<{ user: User; s
     throw new HttpError(401, "Invalid or expired session", { code: "unauthorized" });
   }
   return { user, supabase };
+}
+
+/**
+ * Validates a Supabase user access token and resolves `/v1` tier from `user_subscriptions` (server-side; do not trust client tier headers).
+ */
+export async function tryResolveTierFromSupabaseAccessToken(accessToken: string): Promise<{
+  tier: Tier;
+  userId: string;
+} | null> {
+  if (!env.supabaseUrl || !env.supabaseAnonKey) return null;
+  try {
+    const supabase = createUserSupabase(accessToken);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(accessToken);
+    if (error || !user) return null;
+    const { data: row, error: subErr } = await supabase
+      .from("user_subscriptions")
+      .select("status, plan_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (subErr) return null;
+    const tier = subscriptionRowToTier(row as SubscriptionRow);
+    return { tier, userId: user.id };
+  } catch {
+    return null;
+  }
 }
