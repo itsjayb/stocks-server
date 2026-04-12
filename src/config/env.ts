@@ -15,6 +15,19 @@ function required(name: string): string {
   return v;
 }
 
+/** Reject publishable keys — Payment Intents and server APIs require `sk_...`. */
+function stripeSecretKeyFromEnv(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const k = raw.trim();
+  if (k.startsWith("pk_")) {
+    throw new Error(
+      "STRIPE_SECRET_KEY must be a Secret key (sk_test_... or sk_live_...), not a publishable key (pk_...). " +
+        "Dashboard → Developers → API keys: copy Secret. Put pk_... only in the Vite app as VITE_STRIPE_PUBLIC_KEY.",
+    );
+  }
+  return k;
+}
+
 const apiClients: ApiClientRecord[] = parseApiClientsFromJson(optional("STOCKS_SERVER_API_CLIENTS"));
 
 export const env = {
@@ -63,8 +76,8 @@ export const env = {
   supabaseUrl: optional("SUPABASE_URL"),
   supabaseAnonKey: optional("SUPABASE_ANON_KEY"),
 
-  /** Stripe secret for `/billing/*` (never expose to browsers). */
-  stripeSecretKey: optional("STRIPE_SECRET_KEY"),
+  /** Stripe secret for `/billing/*` (never expose to browsers). Must be `sk_...`, never `pk_...`. */
+  stripeSecretKey: stripeSecretKeyFromEnv(optional("STRIPE_SECRET_KEY")),
 
   /** Set `true` when behind a reverse proxy so rate limits and logs use real client IPs. */
   trustProxy: optional("TRUST_PROXY") === "true",
