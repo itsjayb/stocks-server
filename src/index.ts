@@ -17,6 +17,33 @@ import { socialRouter } from "./routes/social.js";
 import { userRouter } from "./routes/user.js";
 import { v1Router } from "./routes/v1/index.js";
 
+const LOG = "[stocks-server]";
+
+function logStartupConfig(): void {
+  const missing: string[] = [];
+  if (!env.supabaseUrl) missing.push("SUPABASE_URL");
+  if (!env.supabaseAnonKey) missing.push("SUPABASE_ANON_KEY");
+  if (missing.length > 0) {
+    console.warn(
+      `${LOG} Supabase: not configured (missing ${missing.join(", ")}) — /auth, /user, /billing need both`,
+    );
+  } else {
+    let host: string;
+    try {
+      host = new URL(env.supabaseUrl!).hostname;
+    } catch {
+      host = "(invalid SUPABASE_URL)";
+    }
+    console.log(`${LOG} Supabase: ok (host=${host})`);
+  }
+  console.log(
+    `${LOG} Stripe: ${env.stripeSecretKey ? "configured" : "not set"} — /billing/create-payment-intent needs STRIPE_SECRET_KEY`,
+  );
+  console.log(
+    `${LOG} Market data: finnhub=${Boolean(env.finnhubApiKey)} alpaca=${Boolean(env.alpacaApiKeyId && env.alpacaApiSecretKey)}`,
+  );
+}
+
 const app = express();
 app.disable("x-powered-by");
 
@@ -53,9 +80,11 @@ app.use(express.json({ limit: "256kb" }));
 
 if (env.nodeEnv === "production" && env.corsOrigins.length === 0) {
   console.warn(
-    "[stocks-server] STOCKS_SERVER_CORS_ORIGINS is empty in production — built-in Vite localhost origins still apply; add your deployed SPA origin(s) to STOCKS_SERVER_CORS_ORIGINS.",
+    `${LOG} STOCKS_SERVER_CORS_ORIGINS is empty in production — built-in Vite localhost origins still apply; add your deployed SPA origin(s) to STOCKS_SERVER_CORS_ORIGINS.`,
   );
 }
+
+logStartupConfig();
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "stocks-server" });
@@ -75,5 +104,5 @@ app.use("/v1", v1Router);
 app.use(errorHandler);
 
 app.listen(env.port, () => {
-  console.log(`stocks-server listening on http://localhost:${env.port}`);
+  console.log(`${LOG} listening on http://localhost:${env.port} (NODE_ENV=${env.nodeEnv})`);
 });
