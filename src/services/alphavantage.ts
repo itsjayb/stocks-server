@@ -1,6 +1,12 @@
 import { env, requireAlphaVantage } from "../config/env.js";
 import { HttpError } from "../lib/http-error.js";
 
+/** Alpha Vantage free tier is tight; cache TOP_GAINERS_LOSERS so all clients share one upstream call. */
+const TOP_GAINERS_LOSERS_TTL_MS = 120_000;
+
+let topMoversCache: { fetchedAt: number; snapshot: AlphaVantageMarketSnapshot } | null = null;
+let topMoversInflight: Promise<AlphaVantageMarketSnapshot> | null = null;
+
 type AvTickerRow = {
   ticker: string;
   price: string;
@@ -44,7 +50,7 @@ export type AlphaVantageMarketSnapshot = {
   most_active: NormalizedMover[];
 };
 
-export async function getTopGainersLosers(): Promise<AlphaVantageMarketSnapshot> {
+async function fetchTopGainersLosersFromApi(): Promise<AlphaVantageMarketSnapshot> {
   const key = requireAlphaVantage();
   const url = new URL("https://www.alphavantage.co/query");
   url.searchParams.set("function", "TOP_GAINERS_LOSERS");
@@ -80,6 +86,39 @@ export async function getTopGainersLosers(): Promise<AlphaVantageMarketSnapshot>
     losers: (data.top_losers ?? []).map(mapRow),
     most_active: (data.most_actively_traded ?? []).map(mapRow),
   };
+}
+
+export async function getTopGainersLosers(): Promise<AlphaVantageMarketSnapshot> {
+  const now = Date.now();
+  if (topMoversCache && now - topMoversCache.fetchedAt < TOP_GAINERS_LOSERS_TTL_MS) {
+    return topMoversCache.snapshot;
+  }
+  if (topMoversInflight) {
+    return topMoversInflight;
+  }
+
+  topMoversInflight = (async () => {
+    try {
+      const snapshot = await fetchTopGainersLosersFromApi();
+      topMoversCache = { fetchedAt: Date.now(), snapshot };
+      return snapshot;
+    } catch (e) {
+      const cached = topMoversCache;
+      const useStale =
+        cached &&
+        e instanceof HttpError &&
+        e.status === 429 &&
+        e.code === "alphavantage_rate_limit";
+      if (useStale) {
+        return cached.snapshot;
+      }
+      throw e;
+    } finally {
+      topMoversInflight = null;
+    }
+  })();
+
+  return topMoversInflight;
 }
 
 export function isAlphaVantageConfigured(): boolean {
